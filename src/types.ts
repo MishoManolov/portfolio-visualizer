@@ -19,12 +19,10 @@ export interface ComputedNode {
 }
 
 export type DisplayMode = 'relative' | 'absolute';
-export type LayoutMode = 'vertical' | 'horizontal';
 
 export interface PortfolioState {
   root: PortfolioNode;
   displayMode: DisplayMode;
-  layoutMode: LayoutMode;
   activeAddFormNodeId: string | null;
 }
 
@@ -33,5 +31,4 @@ export type PortfolioAction =
   | { type: 'DELETE_NODE'; nodeId: string }
   | { type: 'TOGGLE_EXPAND'; nodeId: string }
   | { type: 'SET_DISPLAY_MODE'; mode: DisplayMode }
-  | { type: 'SET_LAYOUT_MODE'; mode: LayoutMode }
   | { type: 'SET_ACTIVE_ADD_FORM'; nodeId: string | null };

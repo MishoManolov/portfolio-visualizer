@@ -1,5 +1,5 @@
 import { useReducer, useMemo, useEffect } from 'react';
-import type { PortfolioState, PortfolioAction, DisplayMode, LayoutMode } from '../types';
+import type { PortfolioState, PortfolioAction, DisplayMode } from '../types';
 import { initialData } from '../data/initialData';
 import { buildComputedTree } from '../utils/calculations';
 import { addNode, deleteNode, toggleExpand } from '../utils/treeUtils';
@@ -21,7 +21,6 @@ function getInitialState(): PortfolioState {
   return {
     root: saved ?? initialData,
     displayMode: 'relative' as DisplayMode,
-    layoutMode: 'vertical' as LayoutMode,
     activeAddFormNodeId: null,
   };
 }
@@ -46,8 +45,6 @@ function reducer(state: PortfolioState, action: PortfolioAction): PortfolioState
       return { ...state, root: toggleExpand(state.root, action.nodeId) };
     case 'SET_DISPLAY_MODE':
       return { ...state, displayMode: action.mode };
-    case 'SET_LAYOUT_MODE':
-      return { ...state, layoutMode: action.mode };
     case 'SET_ACTIVE_ADD_FORM':
       return {
         ...state,

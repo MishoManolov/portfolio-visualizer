@@ -1,9 +1,32 @@
+import { useState, useMemo } from 'react';
 import { usePortfolio } from './hooks/usePortfolio';
 import { Header } from './components/Header/Header';
 import { TreeView } from './components/TreeView/TreeView';
+import type { ComputedNode } from './types';
+
+function getPathToNode(root: ComputedNode, targetId: string): Set<string> {
+  const path: string[] = [];
+  function walk(node: ComputedNode): boolean {
+    path.push(node.id);
+    if (node.id === targetId) return true;
+    for (const child of node.children) {
+      if (walk(child)) return true;
+    }
+    path.pop();
+    return false;
+  }
+  walk(root);
+  return new Set(path);
+}
 
 function App() {
   const { state, dispatch, computedRoot } = usePortfolio();
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
+
+  const highlightedPath = useMemo(
+    () => focusedNodeId ? getPathToNode(computedRoot, focusedNodeId) : new Set<string>(),
+    [focusedNodeId, computedRoot],
+  );
 
   function handleToggleMode() {
     dispatch({
@@ -12,28 +35,21 @@ function App() {
     });
   }
 
-  function handleToggleLayout() {
-    dispatch({
-      type: 'SET_LAYOUT_MODE',
-      mode: state.layoutMode === 'vertical' ? 'horizontal' : 'vertical',
-    });
-  }
-
   return (
     <>
       <Header
         displayMode={state.displayMode}
         onToggleMode={handleToggleMode}
-        layoutMode={state.layoutMode}
-        onToggleLayout={handleToggleLayout}
       />
       <main>
         <TreeView
           root={computedRoot}
           displayMode={state.displayMode}
-          layoutMode={state.layoutMode}
           activeAddFormNodeId={state.activeAddFormNodeId}
           dispatch={dispatch}
+          focusedNodeId={focusedNodeId}
+          onFocusNode={setFocusedNodeId}
+          highlightedPath={highlightedPath}
         />
       </main>
     </>

@@ -1,25 +1,32 @@
-import type { ComputedNode, DisplayMode, LayoutMode, PortfolioAction } from '../../types';
+import type { ComputedNode, DisplayMode, PortfolioAction } from '../../types';
 import { TreeNode } from '../TreeNode/TreeNode';
 import './TreeView.css';
 
 interface TreeViewProps {
   root: ComputedNode;
   displayMode: DisplayMode;
-  layoutMode: LayoutMode;
   activeAddFormNodeId: string | null;
   dispatch: React.Dispatch<PortfolioAction>;
+  focusedNodeId: string | null;
+  onFocusNode: (id: string | null) => void;
+  highlightedPath: Set<string>;
 }
 
-export function TreeView({ root, displayMode, layoutMode, activeAddFormNodeId, dispatch }: TreeViewProps) {
+export function TreeView({
+  root, displayMode, activeAddFormNodeId, dispatch,
+  focusedNodeId, onFocusNode, highlightedPath,
+}: TreeViewProps) {
   return (
-    <div className="tree-view" data-layout={layoutMode}>
+    <div className="tree-view">
       <ul className="tree-view__root">
         <TreeNode
           node={root}
           displayMode={displayMode}
-          layoutMode={layoutMode}
           activeAddFormNodeId={activeAddFormNodeId}
           dispatch={dispatch}
+          focusedNodeId={focusedNodeId}
+          onFocusNode={onFocusNode}
+          highlightedPath={highlightedPath}
           isRoot
         />
       </ul>

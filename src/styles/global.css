@@ -21,7 +21,9 @@
   --color-text-secondary: #64748b;
   --color-text-muted: #94a3b8;
   --color-tree-line: #cbd5e1;
-  --color-connector: #64748b;
+  --color-connector: #94a3b8;
+  --color-connector-highlight: #3b82f6;
+  --color-connector-dimmed: #e2e8f0;
 
   --radius-sm: 4px;
   --radius-md: 8px;

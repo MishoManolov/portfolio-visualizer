@@ -1,8 +1,9 @@
-/* ── VERTICAL LAYOUT (default) ─────────────────────────────── */
-
 .tree-node__item {
   list-style: none;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .tree-node__self {
@@ -11,74 +12,17 @@
   align-items: flex-start;
 }
 
+/*
+  Children spread horizontally below the parent.
+  The 64px margin-top gives the bezier curves room to arc.
+*/
 .tree-node__children {
   list-style: none;
   margin: 0;
   padding: 0;
-  padding-left: var(--tree-indent);
-  margin-top: var(--node-gap);
-  display: flex;
-  flex-direction: column;
-  gap: var(--node-gap);
-  position: relative;
-}
-
-/* Vertical spine running through all siblings */
-.tree-node__children:not(.tree-node__children--h)::before {
-  content: '';
-  position: absolute;
-  left: calc(var(--tree-line-width) / 2);
-  top: 0;
-  bottom: 21px;
-  width: var(--tree-line-width);
-  background-color: var(--color-tree-line);
-}
-
-/*
-  Curved elbow: descends from the spine then sweeps right to the card.
-  The border-bottom-left-radius gives the smooth bend.
-*/
-.tree-node__children > .tree-node__item:not(.tree-node__item--h)::before {
-  content: '';
-  position: absolute;
-  left: calc(-1 * var(--tree-indent) + var(--tree-line-width) / 2);
-  top: 0;
-  width: calc(var(--tree-indent) - var(--tree-line-width) / 2);
-  height: 21px;
-  border-left: var(--tree-line-width) solid var(--color-tree-line);
-  border-bottom: var(--tree-line-width) solid var(--color-tree-line);
-  border-bottom-left-radius: 12px;
-  background: transparent;
-}
-
-/* Dot where the elbow meets the card */
-.tree-node__children > .tree-node__item:not(.tree-node__item--h)::after {
-  content: '';
-  position: absolute;
-  left: -3px;
-  top: 21px;
-  transform: translateY(-50%);
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-tree-line);
-}
-
-/* ── HORIZONTAL (ORG CHART) LAYOUT ─────────────────────────── */
-
-.tree-node__item--h {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/*
-  Children row. Vertical gap provides room for the SVG bezier arcs.
-  No padding-top or pseudo-element connectors — SVG handles everything.
-*/
-.tree-node__children--h {
-  flex-direction: row;
-  padding-left: 0;
   margin-top: 64px;
+  display: flex;
+  flex-direction: row;
   align-items: flex-start;
+  gap: var(--node-gap);
 }

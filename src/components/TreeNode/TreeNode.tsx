@@ -1,5 +1,5 @@
-import { useRef, useState, useLayoutEffect, useEffect } from 'react';
-import type { ComputedNode, DisplayMode, LayoutMode, PortfolioAction } from '../../types';
+import { useRef, useState, useLayoutEffect } from 'react';
+import type { ComputedNode, DisplayMode, PortfolioAction } from '../../types';
 import { NodeCard } from '../NodeCard/NodeCard';
 import { AddNodeForm } from '../AddNodeForm/AddNodeForm';
 import './TreeNode.css';
@@ -7,16 +7,17 @@ import './TreeNode.css';
 interface TreeNodeProps {
   node: ComputedNode;
   displayMode: DisplayMode;
-  layoutMode: LayoutMode;
   activeAddFormNodeId: string | null;
   dispatch: React.Dispatch<PortfolioAction>;
   isRoot?: boolean;
   overlapMarginLeft?: number;
-  isFocusedSibling?: boolean;
-  onFocusThis?: () => void;
+  focusedNodeId: string | null;
+  onFocusNode: (id: string | null) => void;
+  highlightedPath: Set<string>;
 }
 
 interface Connector {
+  childId: string;
   path: string;
   dotX: number;
   dotY: number;
@@ -31,64 +32,67 @@ interface SvgData {
 export function TreeNode({
   node,
   displayMode,
-  layoutMode,
   activeAddFormNodeId,
   dispatch,
   isRoot = false,
   overlapMarginLeft,
-  isFocusedSibling = false,
-  onFocusThis,
+  focusedNodeId,
+  onFocusNode,
+  highlightedPath,
 }: TreeNodeProps) {
   const isAddFormOpen = activeAddFormNodeId === node.id;
-  const isHorizontal = layoutMode === 'horizontal';
   const hasExpandedChildren = node.children.length > 0 && node.isExpanded;
+  const isFocused = node.id === focusedNodeId;
 
   const containerRef = useRef<HTMLLIElement>(null);
   const selfRef = useRef<HTMLDivElement>(null);
   const childrenListRef = useRef<HTMLUListElement>(null);
   const [overlapPx, setOverlapPx] = useState(0);
-  const [focusedChildId, setFocusedChildId] = useState<string | null>(null);
   const [svgData, setSvgData] = useState<SvgData | null>(null);
 
   // ── Phase 1: compute overlap ───────────────────────────────────
   useLayoutEffect(() => {
-    if (!isHorizontal || !hasExpandedChildren) {
-      setOverlapPx(0);
-      return;
-    }
+    if (!hasExpandedChildren) { setOverlapPx(0); return; }
     const ul = childrenListRef.current;
     if (!ul) return;
 
+    let lastOverlap = 0;
+
     const measure = () => {
       const items = Array.from(ul.children) as HTMLElement[];
-      if (items.length <= 1) { setOverlapPx(0); return; }
-
+      if (items.length <= 1) {
+        if (lastOverlap !== 0) { lastOverlap = 0; setOverlapPx(0); }
+        return;
+      }
       const totalNatural = items.reduce((sum, c) => sum + c.offsetWidth, 0);
       const gap = parseFloat(getComputedStyle(ul).gap) || 8;
       const totalWithGaps = totalNatural + gap * (items.length - 1);
-      const scrollContainer = ul.closest('.tree-view') as HTMLElement | null;
-      const available = scrollContainer
-        ? scrollContainer.clientWidth
+      const sc = ul.closest('.tree-view') as HTMLElement | null;
+      const available = sc
+        ? (() => {
+            const s = getComputedStyle(sc);
+            return sc.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
+          })()
         : document.documentElement.clientWidth - 48;
-
-      if (totalWithGaps > available) {
-        setOverlapPx((totalWithGaps - available) / (items.length - 1));
-      } else {
-        setOverlapPx(0);
+      const next = totalWithGaps > available
+        ? (totalWithGaps - available) / (items.length - 1)
+        : 0;
+      if (Math.abs(next - lastOverlap) > 0.5) {
+        lastOverlap = next;
+        setOverlapPx(next);
       }
     };
 
     measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(ul);
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, [isHorizontal, hasExpandedChildren, node.children.length]);
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
+  }, [hasExpandedChildren, node.children.length]);
 
-  // ── Phase 2: build SVG bezier paths (after overlap layout settles) ──
+  // ── Phase 2: SVG bezier paths (after overlap settles) ─────────
   useLayoutEffect(() => {
-    if (!isHorizontal || !hasExpandedChildren) {
-      setSvgData(null);
-      return;
-    }
+    if (!hasExpandedChildren) { setSvgData(null); return; }
 
     const buildPaths = () => {
       const container = containerRef.current;
@@ -106,6 +110,7 @@ export function TreeNode({
 
       const connectors: Connector[] = [];
       for (const li of Array.from(ul.children) as HTMLElement[]) {
+        const childId = li.dataset.nodeId ?? '';
         const childCard = li.querySelector(':scope > .tree-node__self > .node-card') as HTMLElement | null;
         if (!childCard) continue;
         const r = childCard.getBoundingClientRect();
@@ -113,6 +118,7 @@ export function TreeNode({
         const toY = r.top - cRect.top;
         const span = (toY - originY) * 0.48;
         connectors.push({
+          childId,
           path: `M ${originX} ${originY} C ${originX} ${originY + span}, ${toX} ${toY - span}, ${toX} ${toY}`,
           dotX: toX,
           dotY: toY,
@@ -125,12 +131,7 @@ export function TreeNode({
     buildPaths();
     window.addEventListener('resize', buildPaths);
     return () => window.removeEventListener('resize', buildPaths);
-  }, [isHorizontal, hasExpandedChildren, node.children.length, overlapPx]);
-
-  // Clear focus when child set changes
-  useEffect(() => {
-    setFocusedChildId(null);
-  }, [node.id, node.children.length]);
+  }, [hasExpandedChildren, node.children.length, overlapPx]);
 
   // ── Handlers ──────────────────────────────────────────────────
   function handleToggleExpand() { dispatch({ type: 'TOGGLE_EXPAND', nodeId: node.id }); }
@@ -140,16 +141,38 @@ export function TreeNode({
     dispatch({ type: 'ADD_NODE', parentId: node.id, name, percent });
   }
   function handleAddCancel() { dispatch({ type: 'SET_ACTIVE_ADD_FORM', nodeId: null }); }
+  function handleFocus() { onFocusNode(isFocused ? null : node.id); }
 
-  // ── Item inline style ─────────────────────────────────────────
+  // ── Item style ────────────────────────────────────────────────
   const itemStyle: React.CSSProperties = {};
   if (overlapMarginLeft !== undefined) itemStyle.marginLeft = `${overlapMarginLeft}px`;
-  if (isFocusedSibling) { itemStyle.zIndex = 20; itemStyle.position = 'relative'; }
+  if (isFocused) itemStyle.zIndex = 20;
+
+  // ── SVG connector colours ──────────────────────────────────────
+  const isActive = focusedNodeId !== null;
+  const originHighlighted = isActive && svgData?.connectors.some(c => highlightedPath.has(c.childId));
+
+  function connectorStroke(childId: string) {
+    if (!isActive) return 'var(--color-connector)';
+    return highlightedPath.has(childId)
+      ? 'var(--color-connector-highlight)'
+      : 'var(--color-connector-dimmed)';
+  }
+  function connectorWidth(childId: string) {
+    return isActive && highlightedPath.has(childId) ? '2' : '1.5';
+  }
+  function dotFill(childId: string) {
+    return connectorStroke(childId);
+  }
+  function dotRadius(childId: string) {
+    return isActive && highlightedPath.has(childId) ? 4 : 3;
+  }
 
   return (
     <li
       ref={containerRef}
-      className={`tree-node__item ${isHorizontal ? 'tree-node__item--h' : ''}`}
+      className="tree-node__item"
+      data-node-id={node.id}
       style={Object.keys(itemStyle).length > 0 ? itemStyle : undefined}
     >
       <div ref={selfRef} className="tree-node__self">
@@ -158,11 +181,11 @@ export function TreeNode({
           displayMode={displayMode}
           isRoot={isRoot}
           isAddFormOpen={isAddFormOpen}
-          isOverlapFocused={isFocusedSibling}
+          isOverlapFocused={isFocused}
           onToggleExpand={handleToggleExpand}
           onAddChild={handleAddChild}
           onDelete={handleDelete}
-          onCardBodyClick={onFocusThis}
+          onCardBodyClick={handleFocus}
         />
         {isAddFormOpen && (
           <AddNodeForm
@@ -176,7 +199,7 @@ export function TreeNode({
 
       {hasExpandedChildren && (
         <>
-          {isHorizontal && svgData && (
+          {svgData && (
             <svg
               aria-hidden="true"
               style={{
@@ -188,44 +211,48 @@ export function TreeNode({
                 pointerEvents: 'none',
               }}
             >
-              {svgData.connectors.map((c, i) => (
-                <g key={i}>
+              {svgData.connectors.map((c) => (
+                <g key={c.childId}>
                   <path
                     d={c.path}
-                    stroke="var(--color-connector)"
-                    strokeWidth="1.5"
+                    stroke={connectorStroke(c.childId)}
+                    strokeWidth={connectorWidth(c.childId)}
                     fill="none"
                     strokeLinecap="round"
+                    style={{ transition: 'stroke 0.2s, stroke-width 0.2s' }}
                   />
-                  <circle cx={c.dotX} cy={c.dotY} r={3} fill="var(--color-connector)" />
+                  <circle
+                    cx={c.dotX}
+                    cy={c.dotY}
+                    r={dotRadius(c.childId)}
+                    fill={dotFill(c.childId)}
+                    style={{ transition: 'fill 0.2s, r 0.2s' }}
+                  />
                 </g>
               ))}
-              <circle cx={svgData.originX} cy={svgData.originY} r={3} fill="var(--color-connector)" />
+              <circle
+                cx={svgData.originX}
+                cy={svgData.originY}
+                r={originHighlighted ? 4 : 3}
+                fill={originHighlighted ? 'var(--color-connector-highlight)' : isActive ? 'var(--color-connector-dimmed)' : 'var(--color-connector)'}
+                style={{ transition: 'fill 0.2s, r 0.2s' }}
+              />
             </svg>
           )}
-          <ul
-            ref={childrenListRef}
-            className={`tree-node__children ${isHorizontal ? 'tree-node__children--h' : ''}`}
-          >
-            {node.children.map((child, index) => {
-              const isThisFocused = child.id === focusedChildId;
-              const applyOverlap = isHorizontal && overlapPx > 0 && index > 0 && !isThisFocused;
-              return (
-                <TreeNode
-                  key={child.id}
-                  node={child}
-                  displayMode={displayMode}
-                  layoutMode={layoutMode}
-                  activeAddFormNodeId={activeAddFormNodeId}
-                  dispatch={dispatch}
-                  overlapMarginLeft={applyOverlap ? -overlapPx : undefined}
-                  isFocusedSibling={isHorizontal && isThisFocused}
-                  onFocusThis={isHorizontal
-                    ? () => setFocusedChildId(focusedChildId === child.id ? null : child.id)
-                    : undefined}
-                />
-              );
-            })}
+          <ul ref={childrenListRef} className="tree-node__children">
+            {node.children.map((child, index) => (
+              <TreeNode
+                key={child.id}
+                node={child}
+                displayMode={displayMode}
+                activeAddFormNodeId={activeAddFormNodeId}
+                dispatch={dispatch}
+                overlapMarginLeft={overlapPx > 0 && index > 0 ? -overlapPx : undefined}
+                focusedNodeId={focusedNodeId}
+                onFocusNode={onFocusNode}
+                highlightedPath={highlightedPath}
+              />
+            ))}
           </ul>
         </>
       )}

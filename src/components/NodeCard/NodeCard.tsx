@@ -44,6 +44,7 @@ export function NodeCard({
   return (
     <div
       className={`node-card
+        ${!hasChildren ? 'node-card--leaf' : ''}
         ${isInvalid ? 'node-card--invalid' : ''}
         ${isRoot ? 'node-card--root' : ''}
         ${isOverlapFocused ? 'node-card--overlap-focused' : ''}
