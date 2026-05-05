@@ -1,0 +1,21 @@
+.percentage-bar {
+  height: 5px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.percentage-bar__fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.percentage-bar__fill--default {
+  background: var(--color-primary);
+}
+
+.percentage-bar__fill--danger {
+  background: var(--color-danger);
+}

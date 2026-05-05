@@ -1,0 +1,22 @@
+.tree-view {
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 32px 24px 48px;
+}
+
+.tree-view[data-layout="horizontal"] {
+  overflow-x: hidden;
+}
+
+.tree-view__root {
+  list-style: none;
+  /* min-width: 100% makes the list fill the viewport so align-items can center */
+  /* width: max-content lets it grow wider than the viewport when the tree is large */
+  min-width: 100%;
+  width: max-content;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
