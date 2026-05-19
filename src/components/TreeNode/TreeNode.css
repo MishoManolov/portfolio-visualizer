@@ -4,12 +4,22 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  pointer-events: none;
+}
+
+.tree-node__item--focused {
+  z-index: 20;
+}
+
+.tree-node__item:has(> .tree-node__self:hover) {
+  z-index: 30;
 }
 
 .tree-node__self {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  pointer-events: auto;
 }
 
 /*

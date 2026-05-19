@@ -146,7 +146,6 @@ export function TreeNode({
   // ── Item style ────────────────────────────────────────────────
   const itemStyle: React.CSSProperties = {};
   if (overlapMarginLeft !== undefined) itemStyle.marginLeft = `${overlapMarginLeft}px`;
-  if (isFocused) itemStyle.zIndex = 20;
 
   // ── SVG connector colours ──────────────────────────────────────
   const isActive = focusedNodeId !== null;
@@ -171,7 +170,7 @@ export function TreeNode({
   return (
     <li
       ref={containerRef}
-      className="tree-node__item"
+      className={`tree-node__item${isFocused ? ' tree-node__item--focused' : ''}`}
       data-node-id={node.id}
       style={Object.keys(itemStyle).length > 0 ? itemStyle : undefined}
     >
