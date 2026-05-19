@@ -43,6 +43,7 @@ export function TreeNode({
   const isAddFormOpen = activeAddFormNodeId === node.id;
   const hasExpandedChildren = node.children.length > 0 && node.isExpanded;
   const isFocused = node.id === focusedNodeId;
+  const isOnPath = highlightedPath.has(node.id);
 
   const containerRef = useRef<HTMLLIElement>(null);
   const selfRef = useRef<HTMLDivElement>(null);
@@ -136,7 +137,6 @@ export function TreeNode({
   // ── Handlers ──────────────────────────────────────────────────
   function handleToggleExpand() { dispatch({ type: 'TOGGLE_EXPAND', nodeId: node.id }); }
   function handleAddChild() { dispatch({ type: 'SET_ACTIVE_ADD_FORM', nodeId: node.id }); }
-  function handleDelete() { dispatch({ type: 'DELETE_NODE', nodeId: node.id }); }
   function handleAddSubmit(name: string, percent: number) {
     dispatch({ type: 'ADD_NODE', parentId: node.id, name, percent });
   }
@@ -170,7 +170,7 @@ export function TreeNode({
   return (
     <li
       ref={containerRef}
-      className={`tree-node__item${isFocused ? ' tree-node__item--focused' : ''}`}
+      className={`tree-node__item${isFocused ? ' tree-node__item--focused' : ''}${isOnPath ? ' tree-node__item--on-path' : ''}`}
       data-node-id={node.id}
       style={Object.keys(itemStyle).length > 0 ? itemStyle : undefined}
     >
@@ -183,7 +183,6 @@ export function TreeNode({
           isOverlapFocused={isFocused}
           onToggleExpand={handleToggleExpand}
           onAddChild={handleAddChild}
-          onDelete={handleDelete}
           onCardBodyClick={handleFocus}
         />
         {isAddFormOpen && (

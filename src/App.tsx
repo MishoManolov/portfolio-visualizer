@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { usePortfolio } from './hooks/usePortfolio';
 import { Header } from './components/Header/Header';
 import { TreeView } from './components/TreeView/TreeView';
+import { SidePanel } from './components/SidePanel/SidePanel';
 import type { ComputedNode } from './types';
 
 function getPathToNode(root: ComputedNode, targetId: string): Set<string> {
@@ -19,12 +20,26 @@ function getPathToNode(root: ComputedNode, targetId: string): Set<string> {
   return new Set(path);
 }
 
+function findNode(root: ComputedNode, id: string): ComputedNode | null {
+  if (root.id === id) return root;
+  for (const child of root.children) {
+    const found = findNode(child, id);
+    if (found) return found;
+  }
+  return null;
+}
+
 function App() {
   const { state, dispatch, computedRoot } = usePortfolio();
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
 
   const highlightedPath = useMemo(
     () => focusedNodeId ? getPathToNode(computedRoot, focusedNodeId) : new Set<string>(),
+    [focusedNodeId, computedRoot],
+  );
+
+  const focusedNode = useMemo(
+    () => focusedNodeId ? findNode(computedRoot, focusedNodeId) : null,
     [focusedNodeId, computedRoot],
   );
 
@@ -51,6 +66,14 @@ function App() {
           onFocusNode={setFocusedNodeId}
           highlightedPath={highlightedPath}
         />
+        {focusedNode && (
+          <SidePanel
+            node={focusedNode}
+            dispatch={dispatch}
+            onClose={() => setFocusedNodeId(null)}
+            onNavigate={setFocusedNodeId}
+          />
+        )}
       </main>
     </>
   );

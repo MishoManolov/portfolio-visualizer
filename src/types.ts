@@ -1,6 +1,21 @@
+export interface NodeMetrics {
+  expectedReturn?: number;  // % per year
+  volatility?: number;      // % per year (annual std dev)
+  maxDrawdown?: number;     // % positive magnitude (e.g. 20 means −20%)
+}
+
+export interface AggregatedMetrics {
+  expectedReturn: number | null;
+  volatility: number | null;
+  maxDrawdown: number | null;
+  isPartial: boolean;  // true when some descendants are missing data
+}
+
 export interface PortfolioNode {
   id: string;
   name: string;
+  description?: string;
+  metrics?: NodeMetrics;
   relativePercent: number;
   children: PortfolioNode[];
   isExpanded: boolean;
@@ -9,6 +24,9 @@ export interface PortfolioNode {
 export interface ComputedNode {
   id: string;
   name: string;
+  description?: string;
+  metrics?: NodeMetrics;
+  aggregatedMetrics: AggregatedMetrics;
   relativePercent: number;
   absolutePercent: number;
   childrenSum: number;
@@ -31,4 +49,5 @@ export type PortfolioAction =
   | { type: 'DELETE_NODE'; nodeId: string }
   | { type: 'TOGGLE_EXPAND'; nodeId: string }
   | { type: 'SET_DISPLAY_MODE'; mode: DisplayMode }
-  | { type: 'SET_ACTIVE_ADD_FORM'; nodeId: string | null };
+  | { type: 'SET_ACTIVE_ADD_FORM'; nodeId: string | null }
+  | { type: 'UPDATE_NODE'; nodeId: string; updates: { name?: string; description?: string; relativePercent?: number; metrics?: Partial<NodeMetrics> } };

@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import './AddNodeForm.css';
 
+function normalizeDecimal(s: string): string {
+  return s.replace(/,/g, '.');
+}
+
 interface AddNodeFormProps {
   parentId: string;
   existingChildrenSum: number;
@@ -14,7 +18,7 @@ export function AddNodeForm({ existingChildrenSum, onSubmit, onCancel }: AddNode
   const [errors, setErrors] = useState<{ name?: string; percent?: string }>({});
 
   const remaining = Math.max(0, 100 - existingChildrenSum);
-  const percentNum = parseFloat(percentStr);
+  const percentNum = parseFloat(normalizeDecimal(percentStr));
   const wouldExceed = !isNaN(percentNum) && existingChildrenSum + percentNum > 100.001;
 
   function validate() {
@@ -64,14 +68,12 @@ export function AddNodeForm({ existingChildrenSum, onSubmit, onCancel }: AddNode
         <div className="add-node-form__field add-node-form__field--narrow">
           <div className="add-node-form__percent-wrap">
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               className={`add-node-form__input add-node-form__input--percent ${errors.percent ? 'add-node-form__input--error' : ''}`}
               placeholder={remaining > 0 ? `${remaining.toFixed(remaining % 1 === 0 ? 0 : 2)}` : '0'}
               value={percentStr}
               onChange={(e) => { setPercentStr(e.target.value); setErrors((prev) => ({ ...prev, percent: undefined })); }}
-              min="0.01"
-              max="100"
-              step="0.01"
             />
             <span className="add-node-form__percent-symbol">%</span>
           </div>

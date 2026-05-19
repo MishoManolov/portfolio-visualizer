@@ -11,6 +11,10 @@
   z-index: 20;
 }
 
+.tree-node__item--on-path {
+  z-index: 20;
+}
+
 .tree-node__item:has(> .tree-node__self:hover) {
   z-index: 30;
 }

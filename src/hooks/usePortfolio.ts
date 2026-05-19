@@ -2,7 +2,7 @@ import { useReducer, useMemo, useEffect } from 'react';
 import type { PortfolioState, PortfolioAction, DisplayMode } from '../types';
 import { initialData } from '../data/initialData';
 import { buildComputedTree } from '../utils/calculations';
-import { addNode, deleteNode, toggleExpand } from '../utils/treeUtils';
+import { addNode, deleteNode, toggleExpand, updateNode } from '../utils/treeUtils';
 
 const STORAGE_KEY = 'portfolio-visualizer-tree';
 
@@ -51,6 +51,8 @@ function reducer(state: PortfolioState, action: PortfolioAction): PortfolioState
         activeAddFormNodeId:
           state.activeAddFormNodeId === action.nodeId ? null : action.nodeId,
       };
+    case 'UPDATE_NODE':
+      return { ...state, root: updateNode(state.root, action.nodeId, action.updates) };
     default:
       return state;
   }

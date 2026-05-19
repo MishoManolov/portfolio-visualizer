@@ -32,3 +32,19 @@ export function toggleExpand(root: PortfolioNode, targetId: string): PortfolioNo
     children: root.children.map((child) => toggleExpand(child, targetId)),
   };
 }
+
+export function updateNode(
+  root: PortfolioNode,
+  targetId: string,
+  updates: { name?: string; description?: string; relativePercent?: number; metrics?: Partial<{ expectedReturn?: number; volatility?: number }> },
+): PortfolioNode {
+  if (root.id === targetId) {
+    const { metrics, ...rest } = updates;
+    return {
+      ...root,
+      ...rest,
+      ...(metrics !== undefined ? { metrics: { ...root.metrics, ...metrics } } : {}),
+    };
+  }
+  return { ...root, children: root.children.map((child) => updateNode(child, targetId, updates)) };
+}
