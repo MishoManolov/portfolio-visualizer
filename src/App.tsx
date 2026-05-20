@@ -101,6 +101,7 @@ function App() {
         cash={state.cash}
         onSetCash={handleSetCash}
         computedRoot={computedRoot}
+        dispatch={dispatch}
       />
       <main>
         <TreeView

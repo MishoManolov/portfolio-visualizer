@@ -1,22 +1,22 @@
 import type { ComputedNode } from '../types';
 
-export interface RebalanceTransaction {
-  fromName: string;
-  toName: string;
-  amount: number;
+export type OperationType = 'withdraw' | 'deposit';
+
+export interface RebalanceOperation {
+  type: OperationType;
+  assetId: string;
+  assetName: string;
+  amount: number;          // absolute value, always positive
   portfolioPercent: number;
 }
 
-export type RebalanceStatus =
-  | 'no-values'       // total portfolio value is zero — nothing to rebalance
-  | 'in-tolerance'    // all assets within tolerance
-  | 'ok'              // drifted assets found, plan generated
+export type RebalanceStatus = 'no-values' | 'in-tolerance' | 'ok';
 
 export interface RebalancePlan {
   status: RebalanceStatus;
-  totalValue: number;
+  totalCapital: number;   // invested + cash (cash may be negative)
   trackedLeafCount: number;
-  transactions: RebalanceTransaction[];
+  operations: RebalanceOperation[];
 }
 
 function collectLeaves(node: ComputedNode, out: ComputedNode[]) {
@@ -25,77 +25,69 @@ function collectLeaves(node: ComputedNode, out: ComputedNode[]) {
 }
 
 /**
- * Greedy minimum-transaction rebalancing.
+ * For each leaf, compute delta = actual − target where target is based on
+ * totalCapital = invested + cash.
  *
- * For each tracked leaf: compute delta = actual − target.
- * Sort overweight assets (delta > 0) and underweight assets (delta < 0).
- * Repeatedly pair the most overweight seller with the most underweight buyer,
- * transferring min(seller_remaining, buyer_need). This exhausts at least one
- * party per step, yielding at most (sellers + buyers − 1) transactions total.
+ * cash > 0 → user wants to grow the portfolio (more capital to deploy)
+ * cash < 0 → user wants to shrink the portfolio (capital to reclaim)
+ * cash = 0 → pure rebalancing, portfolio size stays the same
  *
- * We target the exact allocation value, which always lands within tolerance.
+ * Overweight assets produce Withdraw operations; underweight assets produce
+ * Deposit operations. Withdrawals are listed first (they replenish cash),
+ * deposits second (they consume cash). Each operation has a Fulfill button
+ * in the UI; deposits are disabled when current cash is insufficient.
  */
 export function computeRebalancePlan(root: ComputedNode, tolerance: number, cash = 0): RebalancePlan {
   const investedValue = root.aggregatedValue;
-  // Cash is treated as an additional pool to deploy; it widens each asset's target proportionally.
-  const totalCapital = investedValue + Math.max(0, cash);
+  const totalCapital = investedValue + cash;
 
   const leaves: ComputedNode[] = [];
   collectLeaves(root, leaves);
 
-  // totalCapital is zero only when no leaf has any currentValue and cash is also zero
   if (leaves.length === 0 || totalCapital <= 0) {
-    return { status: 'no-values', totalValue: 0, trackedLeafCount: 0, transactions: [] };
+    return { status: 'no-values', totalCapital: 0, trackedLeafCount: 0, operations: [] };
   }
 
-  const toleranceValue = (tolerance / 100) * totalCapital;
+  const toleranceValue = (tolerance / 100) * Math.abs(totalCapital);
 
-  // Untracked leaves have aggregatedValue = 0, so they appear underweight and
-  // naturally receive funds in the plan — no special-casing needed.
-  const items = leaves.map(leaf => ({
-    name: leaf.name,
-    target: (leaf.absolutePercent / 100) * totalCapital,
-    actual: leaf.aggregatedValue,
-    remaining: leaf.aggregatedValue - (leaf.absolutePercent / 100) * totalCapital,
-  }));
+  const withdrawals: RebalanceOperation[] = [];
+  const deposits: RebalanceOperation[] = [];
 
-  // Cash has a target of 0 — it must be fully deployed into assets.
-  if (cash > 0.005) {
-    items.push({ name: 'Cash', target: 0, actual: cash, remaining: cash });
-  }
+  for (const leaf of leaves) {
+    const target = (leaf.absolutePercent / 100) * totalCapital;
+    const actual = leaf.aggregatedValue;
+    const delta = actual - target; // positive → overweight, negative → underweight
 
-  const anyDrifted = items.some(i => Math.abs(i.remaining) > toleranceValue);
-
-  if (!anyDrifted) {
-    return { status: 'in-tolerance', totalValue: totalCapital, trackedLeafCount: leaves.length, transactions: [] };
-  }
-
-  const sellers = items.filter(i => i.remaining >  0.005).sort((a, b) => b.remaining - a.remaining);
-  const buyers  = items.filter(i => i.remaining < -0.005).sort((a, b) => a.remaining - b.remaining);
-
-  const transactions: RebalanceTransaction[] = [];
-  let si = 0, bi = 0;
-
-  while (si < sellers.length && bi < buyers.length) {
-    const seller = sellers[si];
-    const buyer  = buyers[bi];
-    const amount = Math.min(seller.remaining, -buyer.remaining);
-
-    if (amount >= 0.005) {
-      transactions.push({
-        fromName: seller.name,
-        toName: buyer.name,
-        amount,
-        portfolioPercent: (amount / totalCapital) * 100,
+    if (delta > toleranceValue) {
+      withdrawals.push({
+        type: 'withdraw',
+        assetId: leaf.id,
+        assetName: leaf.name,
+        amount: delta,
+        portfolioPercent: (delta / Math.abs(totalCapital)) * 100,
+      });
+    } else if (delta < -toleranceValue) {
+      deposits.push({
+        type: 'deposit',
+        assetId: leaf.id,
+        assetName: leaf.name,
+        amount: -delta,
+        portfolioPercent: (-delta / Math.abs(totalCapital)) * 100,
       });
     }
-
-    seller.remaining -= amount;
-    buyer.remaining  += amount;
-
-    if (seller.remaining < 0.005) si++;
-    if (-buyer.remaining < 0.005) bi++;
   }
 
-  return { status: 'ok', totalValue: totalCapital, trackedLeafCount: leaves.length, transactions };
+  if (withdrawals.length === 0 && deposits.length === 0) {
+    return { status: 'in-tolerance', totalCapital, trackedLeafCount: leaves.length, operations: [] };
+  }
+
+  withdrawals.sort((a, b) => b.amount - a.amount);
+  deposits.sort((a, b) => b.amount - a.amount);
+
+  return {
+    status: 'ok',
+    totalCapital,
+    trackedLeafCount: leaves.length,
+    operations: [...withdrawals, ...deposits],
+  };
 }

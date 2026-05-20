@@ -1,4 +1,4 @@
-import type { DisplayMode, ComputedNode } from '../../types';
+import type { DisplayMode, ComputedNode, PortfolioAction } from '../../types';
 import { SettingsDrawer } from '../SettingsDrawer/SettingsDrawer';
 import './Header.css';
 
@@ -10,11 +10,12 @@ interface HeaderProps {
   cash: number;
   onSetCash: (v: number) => void;
   computedRoot: ComputedNode;
+  dispatch: React.Dispatch<PortfolioAction>;
 }
 
 export function Header({
   displayMode, onToggleMode, tolerance, onSetTolerance,
-  cash, onSetCash, computedRoot,
+  cash, onSetCash, computedRoot, dispatch,
 }: HeaderProps) {
   return (
     <header className="header">
@@ -27,6 +28,7 @@ export function Header({
           cash={cash}
           onSetCash={onSetCash}
           computedRoot={computedRoot}
+          dispatch={dispatch}
         />
         <div className="header__title-group">
           <h1 className="header__title">Portfolio Visualizer</h1>

@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import type { DisplayMode, ComputedNode } from '../../types';
-import { computeRebalancePlan, type RebalancePlan } from '../../utils/rebalance';
+import { useState, useEffect } from 'react';
+import type { DisplayMode, ComputedNode, PortfolioAction } from '../../types';
+import { computeRebalancePlan, type RebalancePlan, type RebalanceOperation } from '../../utils/rebalance';
 import { formatValue, formatPercent } from '../../utils/calculations';
 import './SettingsDrawer.css';
 
@@ -12,37 +12,72 @@ interface SettingsDrawerProps {
   cash: number;
   onSetCash: (v: number) => void;
   computedRoot: ComputedNode;
+  dispatch: React.Dispatch<PortfolioAction>;
+}
+
+function findNode(node: ComputedNode, id: string): ComputedNode | null {
+  if (node.id === id) return node;
+  for (const child of node.children) {
+    const found = findNode(child, id);
+    if (found) return found;
+  }
+  return null;
 }
 
 export function SettingsDrawer({
   displayMode, onToggleMode, tolerance, onSetTolerance,
-  cash, onSetCash, computedRoot,
+  cash, onSetCash, computedRoot, dispatch,
 }: SettingsDrawerProps) {
   const investedCapital = computedRoot.aggregatedValue;
   const [isOpen, setIsOpen] = useState(false);
   const [localTolerance, setLocalTolerance] = useState(String(tolerance));
-  const [localCash, setLocalCash] = useState(cash > 0 ? String(cash) : '');
+  const [localCash, setLocalCash] = useState(cash !== 0 ? String(cash) : '');
   const [plan, setPlan] = useState<RebalancePlan | null>(null);
   const [methodologyOpen, setMethodologyOpen] = useState(false);
 
+  // Keep localCash in sync when cash changes externally (e.g. after fulfilling an operation)
+  useEffect(() => {
+    setLocalCash(cash !== 0 ? String(Math.round(cash * 100) / 100) : '');
+  }, [cash]);
+
+  // Auto-recompute plan whenever relevant state changes, but only if plan is visible
+  useEffect(() => {
+    if (plan !== null) {
+      setPlan(computeRebalancePlan(computedRoot, tolerance, cash));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [computedRoot, tolerance, cash]);
+
   function handleToleranceBlur() {
     const val = parseFloat(localTolerance.replace(',', '.'));
-    if (isNaN(val) || val < 0 || val > 100) {
-      setLocalTolerance(String(tolerance));
-      return;
-    }
+    if (isNaN(val) || val < 0 || val > 100) { setLocalTolerance(String(tolerance)); return; }
     if (val !== tolerance) onSetTolerance(val);
   }
 
   function handleCashBlur() {
     const val = parseFloat(localCash.replace(',', '.').replace(/\s/g, ''));
-    if (isNaN(val) || val < 0) { setLocalCash(cash > 0 ? String(cash) : ''); return; }
+    if (isNaN(val)) { setLocalCash(cash !== 0 ? String(cash) : ''); return; }
     if (val !== cash) onSetCash(val);
   }
 
   function handleSuggest() {
     setPlan(computeRebalancePlan(computedRoot, tolerance, cash));
     setMethodologyOpen(false);
+  }
+
+  function handleFulfill(op: RebalanceOperation) {
+    const node = findNode(computedRoot, op.assetId);
+    if (!node) return;
+    const current = node.aggregatedValue;
+
+    if (op.type === 'withdraw') {
+      dispatch({ type: 'UPDATE_NODE', nodeId: op.assetId, updates: { currentValue: Math.max(0, current - op.amount) } });
+      onSetCash(Math.round((cash + op.amount) * 100) / 100);
+    } else {
+      if (cash < op.amount) return;
+      dispatch({ type: 'UPDATE_NODE', nodeId: op.assetId, updates: { currentValue: current + op.amount } });
+      onSetCash(Math.round((cash - op.amount) * 100) / 100);
+    }
   }
 
   return (
@@ -63,27 +98,12 @@ export function SettingsDrawer({
         </svg>
       </button>
 
-      {isOpen && (
-        <div
-          className="settings-backdrop"
-          onClick={() => setIsOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      {isOpen && <div className="settings-backdrop" onClick={() => setIsOpen(false)} aria-hidden="true" />}
 
-      <div
-        className={`settings-drawer${isOpen ? ' settings-drawer--open' : ''}`}
-        role="dialog"
-        aria-label="Settings"
-        aria-modal="true"
-      >
+      <div className={`settings-drawer${isOpen ? ' settings-drawer--open' : ''}`} role="dialog" aria-label="Settings" aria-modal="true">
         <div className="settings-drawer__header">
           <span className="settings-drawer__title">Settings</span>
-          <button
-            className="settings-drawer__close"
-            onClick={() => setIsOpen(false)}
-            aria-label="Close settings"
-          >
+          <button className="settings-drawer__close" onClick={() => setIsOpen(false)} aria-label="Close settings">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -104,7 +124,11 @@ export function SettingsDrawer({
                 </span>
               </div>
               <label className="settings-capital-row">
-                <span className="settings-capital-row__label">Cash</span>
+                <span className="settings-capital-row__label">
+                  Cash
+                  {cash < 0 && <span className="settings-capital-row__hint"> (reducing)</span>}
+                  {cash > 0 && <span className="settings-capital-row__hint"> (growing)</span>}
+                </span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -114,7 +138,7 @@ export function SettingsDrawer({
                   onChange={e => setLocalCash(e.target.value)}
                   onBlur={handleCashBlur}
                   onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                  aria-label="Cash (uninvested capital)"
+                  aria-label="Cash balance (positive = growing, negative = reducing)"
                 />
               </label>
             </div>
@@ -123,7 +147,7 @@ export function SettingsDrawer({
           {/* ── Display mode ─────────────────────────────────────── */}
           <section className="settings-section">
             <div className="settings-section__label">Percentage display</div>
-            <div className="settings-toggle" role="group" aria-label="Percentage display mode">
+            <div className="settings-toggle" role="group">
               <button
                 className={`settings-toggle__btn${displayMode === 'relative' ? ' settings-toggle__btn--active' : ''}`}
                 onClick={() => displayMode !== 'relative' && onToggleMode()}
@@ -166,7 +190,16 @@ export function SettingsDrawer({
               Suggest Re-allocations
             </button>
 
-            {plan && <RebalancePlanView plan={plan} tolerance={tolerance} onToggleMethodology={() => setMethodologyOpen(o => !o)} methodologyOpen={methodologyOpen} />}
+            {plan && (
+              <RebalancePlanView
+                plan={plan}
+                tolerance={tolerance}
+                currentCash={cash}
+                methodologyOpen={methodologyOpen}
+                onToggleMethodology={() => setMethodologyOpen(o => !o)}
+                onFulfill={handleFulfill}
+              />
+            )}
           </section>
 
         </div>
@@ -178,13 +211,18 @@ export function SettingsDrawer({
 /* ── Rebalance result panel ──────────────────────────────────── */
 
 function RebalancePlanView({
-  plan, tolerance, methodologyOpen, onToggleMethodology,
+  plan, tolerance, currentCash, methodologyOpen, onToggleMethodology, onFulfill,
 }: {
   plan: RebalancePlan;
   tolerance: number;
+  currentCash: number;
   methodologyOpen: boolean;
   onToggleMethodology: () => void;
+  onFulfill: (op: RebalanceOperation) => void;
 }) {
+  const withdrawals = plan.operations.filter(o => o.type === 'withdraw');
+  const deposits    = plan.operations.filter(o => o.type === 'deposit');
+
   return (
     <div className="rebalance-result">
 
@@ -204,18 +242,21 @@ function RebalancePlanView({
       {methodologyOpen && (
         <div className="rebalance-methodology">
           <p>
-            For each asset with a tracked value, we compute the difference between its <strong>actual current value</strong> and its <strong>target value</strong> (derived from the target allocation percentages).
+            Each asset's <strong>target value</strong> is derived from its allocation percentage applied to the total capital (invested + cash balance).
           </p>
           <p>
-            Assets holding <em>more</em> than their target are marked as <strong>sell</strong>; assets holding <em>less</em> are marked as <strong>buy</strong>. We then pair the most overweight seller with the most underweight buyer, transferring the smaller of the two amounts. This exhausts at least one asset per step, giving the <strong>minimum possible number of transfers</strong>.
+            Assets above their target by more than the {tolerance}% tolerance generate a <strong>Withdraw</strong> operation. Assets below target generate a <strong>Deposit</strong> operation.
+            Withdrawals are listed first — completing them replenishes the cash balance which can then fund deposits.
           </p>
           <p>
-            Transfers target the <strong>exact allocation value</strong> (not just the edge of the tolerance band), so the result is always within your {tolerance}% tolerance.
+            A <strong>positive cash balance</strong> means you want to grow the portfolio, widening each asset's target. A <strong>negative cash balance</strong> signals a planned reduction, shrinking each target — so assets that are now relatively overweight need to be withdrawn.
+          </p>
+          <p>
+            Fulfilling an operation updates the asset value and adjusts the cash balance automatically. Deposits are blocked when the cash balance is insufficient.
           </p>
         </div>
       )}
 
-      {/* Status / result */}
       {plan.status === 'no-values' && (
         <p className="rebalance-empty">
           No asset values are tracked. Enter current market values for your leaf assets (via the side panel) to get rebalancing suggestions.
@@ -227,26 +268,67 @@ function RebalancePlanView({
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          All {plan.trackedLeafCount} assets are within the {tolerance}% tolerance. No rebalancing needed.
+          All {plan.trackedLeafCount} assets are within the {tolerance}% tolerance.
         </div>
       )}
 
-      {plan.transactions.length > 0 && (
-        <ol className="rebalance-list">
-          {plan.transactions.map((tx, i) => (
-            <li key={i} className="rebalance-item">
-              <span className="rebalance-item__step">{i + 1}</span>
-              <div className="rebalance-item__body">
-                <span className="rebalance-item__action">
-                  Withdraw <strong>{formatValue(tx.amount)}</strong>{' '}
-                  <span className="rebalance-item__pct">({formatPercent(tx.portfolioPercent)} of portfolio)</span>{' '}
-                  from <strong>{tx.fromName}</strong> and deposit into <strong>{tx.toName}</strong>.
-                </span>
+      {plan.status === 'ok' && (
+        <>
+          {withdrawals.length > 0 && (
+            <div className="rebalance-group">
+              <div className="rebalance-group__label rebalance-group__label--withdraw">
+                Withdrawals
               </div>
-            </li>
-          ))}
-        </ol>
+              {withdrawals.map(op => (
+                <OperationRow key={op.assetId} op={op} currentCash={currentCash} onFulfill={onFulfill} />
+              ))}
+            </div>
+          )}
+
+          {deposits.length > 0 && (
+            <div className="rebalance-group">
+              <div className="rebalance-group__label rebalance-group__label--deposit">
+                Deposits
+              </div>
+              {deposits.map(op => (
+                <OperationRow key={op.assetId} op={op} currentCash={currentCash} onFulfill={onFulfill} />
+              ))}
+            </div>
+          )}
+        </>
       )}
+    </div>
+  );
+}
+
+function OperationRow({ op, currentCash, onFulfill }: {
+  op: RebalanceOperation;
+  currentCash: number;
+  onFulfill: (op: RebalanceOperation) => void;
+}) {
+  const isDeposit = op.type === 'deposit';
+  const canFulfill = !isDeposit || currentCash >= op.amount;
+
+  return (
+    <div className={`rebalance-op rebalance-op--${op.type}`}>
+      <div className="rebalance-op__icon" aria-hidden="true">
+        {isDeposit ? '+' : '−'}
+      </div>
+      <div className="rebalance-op__body">
+        <span className="rebalance-op__name">{op.assetName}</span>
+        <span className="rebalance-op__amount">
+          {formatValue(op.amount)}{' '}
+          <span className="rebalance-op__pct">({formatPercent(op.portfolioPercent)})</span>
+        </span>
+      </div>
+      <button
+        className={`rebalance-op__fulfill${canFulfill ? '' : ' rebalance-op__fulfill--disabled'}`}
+        onClick={() => canFulfill && onFulfill(op)}
+        disabled={!canFulfill}
+        title={canFulfill ? `Fulfill ${op.type}` : `Insufficient cash (need ${formatValue(op.amount)}, have ${formatValue(currentCash)})`}
+      >
+        {canFulfill ? '▶' : '⊘'}
+      </button>
     </div>
   );
 }
