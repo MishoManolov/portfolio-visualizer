@@ -10,11 +10,12 @@ interface TreeViewProps {
   focusedNodeId: string | null;
   onFocusNode: (id: string | null) => void;
   highlightedPath: Set<string>;
+  visibleBranchIds: Set<string>;
 }
 
 export function TreeView({
   root, displayMode, activeAddFormNodeId, dispatch,
-  focusedNodeId, onFocusNode, highlightedPath,
+  focusedNodeId, onFocusNode, highlightedPath, visibleBranchIds,
 }: TreeViewProps) {
   return (
     <div className="tree-view">
@@ -27,6 +28,7 @@ export function TreeView({
           focusedNodeId={focusedNodeId}
           onFocusNode={onFocusNode}
           highlightedPath={highlightedPath}
+          visibleBranchIds={visibleBranchIds}
           isRoot
         />
       </ul>

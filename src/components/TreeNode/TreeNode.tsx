@@ -14,6 +14,7 @@ interface TreeNodeProps {
   focusedNodeId: string | null;
   onFocusNode: (id: string | null) => void;
   highlightedPath: Set<string>;
+  visibleBranchIds: Set<string>;
 }
 
 interface Connector {
@@ -39,11 +40,13 @@ export function TreeNode({
   focusedNodeId,
   onFocusNode,
   highlightedPath,
+  visibleBranchIds,
 }: TreeNodeProps) {
   const isAddFormOpen = activeAddFormNodeId === node.id;
   const hasExpandedChildren = node.children.length > 0 && node.isExpanded;
   const isFocused = node.id === focusedNodeId;
   const isOnPath = highlightedPath.has(node.id);
+  const isDimmed = focusedNodeId !== null && !visibleBranchIds.has(node.id);
 
   const containerRef = useRef<HTMLLIElement>(null);
   const selfRef = useRef<HTMLDivElement>(null);
@@ -156,9 +159,9 @@ export function TreeNode({
 
   function connectorStroke(childId: string) {
     if (!isActive) return 'var(--color-connector)';
-    return highlightedPath.has(childId)
-      ? 'var(--color-connector-highlight)'
-      : 'var(--color-connector-dimmed)';
+    if (highlightedPath.has(childId)) return 'var(--color-connector-highlight)';
+    if (visibleBranchIds.has(childId)) return 'var(--color-connector)';
+    return 'var(--color-connector-dimmed)';
   }
   function connectorWidth(childId: string) {
     return isActive && highlightedPath.has(childId) ? '2' : '1.5';
@@ -173,7 +176,7 @@ export function TreeNode({
   return (
     <li
       ref={containerRef}
-      className={`tree-node__item${isFocused ? ' tree-node__item--focused' : ''}${isOnPath ? ' tree-node__item--on-path' : ''}`}
+      className={`tree-node__item${isFocused ? ' tree-node__item--focused' : ''}${isOnPath ? ' tree-node__item--on-path' : ''}${isDimmed ? ' tree-node__item--dimmed' : ''}`}
       data-node-id={node.id}
       style={Object.keys(itemStyle).length > 0 ? itemStyle : undefined}
     >
@@ -235,7 +238,7 @@ export function TreeNode({
                 cx={svgData.originX}
                 cy={svgData.originY}
                 r={originHighlighted ? 4 : 3}
-                fill={originHighlighted ? 'var(--color-connector-highlight)' : isActive ? 'var(--color-connector-dimmed)' : 'var(--color-connector)'}
+                fill={originHighlighted ? 'var(--color-connector-highlight)' : isActive && !visibleBranchIds.has(node.id) ? 'var(--color-connector-dimmed)' : 'var(--color-connector)'}
                 style={{ transition: 'fill 0.2s, r 0.2s' }}
               />
             </svg>
@@ -252,6 +255,7 @@ export function TreeNode({
                 focusedNodeId={focusedNodeId}
                 onFocusNode={onFocusNode}
                 highlightedPath={highlightedPath}
+                visibleBranchIds={visibleBranchIds}
               />
             ))}
           </ul>

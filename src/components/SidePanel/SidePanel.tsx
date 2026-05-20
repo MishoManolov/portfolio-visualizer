@@ -28,20 +28,19 @@ function MetricInput({
 }) {
   return (
     <div className="side-panel__field">
-      <span className="side-panel__field-label">{label}</span>
-      <div className="side-panel__metric-input-wrap">
-        <input
-          type="text"
-          inputMode="decimal"
-          className="side-panel__metric-input"
-          value={value}
-          placeholder="—"
-          onChange={e => onChange(e.target.value)}
-          onBlur={onBlur}
-          onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-        />
-        <span className="side-panel__metric-unit">{unit}</span>
-      </div>
+      <span className="side-panel__field-label">
+        {label} <span className="side-panel__field-unit">({unit})</span>
+      </span>
+      <input
+        type="text"
+        inputMode="decimal"
+        className="side-panel__metric-input"
+        value={value}
+        placeholder="—"
+        onChange={e => onChange(e.target.value)}
+        onBlur={onBlur}
+        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+      />
     </div>
   );
 }
@@ -204,22 +203,21 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
         <section className="side-panel__section">
           <h3 className="side-panel__section-title">Allocation</h3>
           <div className="side-panel__field">
-            <span className="side-panel__field-label">Relative</span>
+            <span className="side-panel__field-label">
+              Relative <span className="side-panel__field-unit">(%)</span>
+            </span>
             {isRoot ? (
               <span className="side-panel__field-value">{formatPercent(node.relativePercent)}</span>
             ) : (
-              <div className="side-panel__percent-wrap">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className={`side-panel__percent-input${percentError ? ' side-panel__percent-input--error' : ''}`}
-                  value={localPercent}
-                  onChange={e => { setLocalPercent(e.target.value); setPercentError(null); }}
-                  onBlur={handlePercentBlur}
-                  onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                />
-                <span className="side-panel__percent-symbol">%</span>
-              </div>
+              <input
+                type="text"
+                inputMode="decimal"
+                className={`side-panel__percent-input${percentError ? ' side-panel__percent-input--error' : ''}`}
+                value={localPercent}
+                onChange={e => { setLocalPercent(e.target.value); setPercentError(null); }}
+                onBlur={handlePercentBlur}
+                onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+              />
             )}
           </div>
           {percentError && <p className="side-panel__field-error">{percentError}</p>}
@@ -276,18 +274,16 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
           ) : (
             <div className="side-panel__field">
               <span className="side-panel__field-label">Value</span>
-              <div className="side-panel__metric-input-wrap">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className="side-panel__metric-input"
-                  value={localValue}
-                  placeholder="—"
-                  onChange={e => setLocalValue(e.target.value)}
-                  onBlur={handleValueBlur}
-                  onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                />
-              </div>
+              <input
+                type="text"
+                inputMode="decimal"
+                className="side-panel__metric-input"
+                value={localValue}
+                placeholder="—"
+                onChange={e => setLocalValue(e.target.value)}
+                onBlur={handleValueBlur}
+                onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+              />
             </div>
           )}
           {node.isValuePartial && hasChildren && (
@@ -368,14 +364,9 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
                 onClick={() => onNavigate(parentNode.id)}
               >
                 <span className="side-panel__child-name">{parentNode.name}</span>
-                <div className="side-panel__child-meta">
-                  {parentNode.aggregatedMetrics.expectedReturn !== null && (
-                    <span className="side-panel__child-metric">
-                      {parentNode.aggregatedMetrics.expectedReturn.toFixed(1)}%
-                    </span>
-                  )}
-                  <span className="side-panel__child-percent">{formatPercent(parentNode.absolutePercent)}</span>
-                </div>
+                <span className="side-panel__child-percent" title="Absolute % of total portfolio">
+                  {formatPercent(parentNode.absolutePercent)} of portfolio
+                </span>
               </button>
             </div>
           </section>
@@ -395,14 +386,9 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
                   onClick={() => onNavigate(child.id)}
                 >
                   <span className="side-panel__child-name">{child.name}</span>
-                  <div className="side-panel__child-meta">
-                    {child.aggregatedMetrics.expectedReturn !== null && (
-                      <span className="side-panel__child-metric">
-                        {child.aggregatedMetrics.expectedReturn.toFixed(1)}%
-                      </span>
-                    )}
-                    <span className="side-panel__child-percent">{formatPercent(child.relativePercent)}</span>
-                  </div>
+                  <span className="side-panel__child-percent" title="Relative % of this node">
+                    {formatPercent(child.relativePercent)} of parent
+                  </span>
                 </button>
               ))}
             </div>

@@ -15,6 +15,15 @@
   z-index: 20;
 }
 
+.tree-node__item--dimmed > .tree-node__self {
+  opacity: 0.35;
+  transition: opacity 0.2s;
+}
+
+.tree-node__item--dimmed > .tree-node__self:hover {
+  opacity: 0.65;
+}
+
 .tree-node__item:has(> .tree-node__self:hover) {
   z-index: 30;
 }

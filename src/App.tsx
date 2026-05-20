@@ -38,6 +38,11 @@ function findParent(root: ComputedNode, id: string): ComputedNode | null {
   return null;
 }
 
+function collectDescendantIds(node: ComputedNode, out: Set<string>) {
+  out.add(node.id);
+  for (const child of node.children) collectDescendantIds(child, out);
+}
+
 function App() {
   const { state, dispatch, computedRoot } = usePortfolio();
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
@@ -56,6 +61,13 @@ function App() {
     () => focusedNodeId ? findParent(computedRoot, focusedNodeId) : null,
     [focusedNodeId, computedRoot],
   );
+
+  const visibleBranchIds = useMemo(() => {
+    if (!focusedNodeId || !focusedNode) return new Set<string>();
+    const ids = new Set(highlightedPath);
+    collectDescendantIds(focusedNode, ids);
+    return ids;
+  }, [focusedNodeId, focusedNode, highlightedPath]);
 
   function handleToggleMode() {
     dispatch({
@@ -85,6 +97,7 @@ function App() {
           focusedNodeId={focusedNodeId}
           onFocusNode={setFocusedNodeId}
           highlightedPath={highlightedPath}
+          visibleBranchIds={visibleBranchIds}
         />
         {focusedNode && (
           <SidePanel
