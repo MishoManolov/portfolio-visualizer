@@ -135,5 +135,5 @@ export function formatPercent(value: number): string {
 }
 
 export function formatValue(value: number): string {
-  return value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }

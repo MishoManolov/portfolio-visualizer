@@ -181,6 +181,22 @@
   outline: none;
 }
 
+.settings-capital-row__input--narrow {
+  width: 52px;
+}
+
+.settings-capital-row__right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.settings-capital-row__unit {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
 /* ── Toggle ──────────────────────────────────────────────────── */
 
 .settings-toggle {
@@ -215,45 +231,20 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* ── Tolerance ───────────────────────────────────────────────── */
+/* ── Rebalance trigger buttons ───────────────────────────────── */
 
-.settings-tolerance {
+.settings-rebalance-actions {
   display: flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 8px 12px;
-  width: fit-content;
+  gap: 8px;
 }
-
-.settings-tolerance__input {
-  width: 48px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-primary);
-  font-size: 14px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  outline: none;
-}
-
-.settings-tolerance__unit {
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
-/* ── Rebalance trigger button ────────────────────────────────── */
 
 .settings-rebalance-btn {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 9px 14px;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 10px;
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-md);
   background: var(--color-primary-light);
@@ -269,9 +260,20 @@
 }
 
 .settings-rebalance-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
+}
+
+.settings-rebalance-btn--auto {
+  border-color: var(--color-success);
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.settings-rebalance-btn--auto:hover {
+  background: #d1fae5;
+  box-shadow: var(--shadow-sm);
 }
 
 /* ── Rebalance result panel ──────────────────────────────────── */

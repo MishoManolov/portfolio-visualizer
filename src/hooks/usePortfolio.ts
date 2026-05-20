@@ -38,20 +38,53 @@ function getInitialState(): PortfolioState {
   };
 }
 
+function findPortfolioNode(root: PortfolioNode, id: string): PortfolioNode | null {
+  if (root.id === id) return root;
+  for (const child of root.children) {
+    const found = findPortfolioNode(child, id);
+    if (found) return found;
+  }
+  return null;
+}
+
+function hasLeafData(node: PortfolioNode): boolean {
+  if (node.currentValue !== undefined) return true;
+  if (!node.metrics) return false;
+  return Object.values(node.metrics).some(v => v !== undefined);
+}
+
 function reducer(state: PortfolioState, action: PortfolioAction): PortfolioState {
   switch (action.type) {
-    case 'ADD_NODE':
+    case 'ADD_NODE': {
+      const newNode: PortfolioNode = {
+        id: crypto.randomUUID(),
+        name: action.name,
+        relativePercent: action.percent,
+        children: [],
+        isExpanded: false,
+      };
+
+      const parent = findPortfolioNode(state.root, action.parentId);
+      const selfClone: PortfolioNode | undefined =
+        parent && parent.children.length === 0 && hasLeafData(parent)
+          ? {
+              id: crypto.randomUUID(),
+              name: parent.name,
+              description: parent.description,
+              metrics: parent.metrics,
+              currentValue: parent.currentValue,
+              relativePercent: Math.max(0, 100 - action.percent),
+              children: [],
+              isExpanded: false,
+            }
+          : undefined;
+
       return {
         ...state,
-        root: addNode(state.root, action.parentId, {
-          id: crypto.randomUUID(),
-          name: action.name,
-          relativePercent: action.percent,
-          children: [],
-          isExpanded: false,
-        }),
+        root: addNode(state.root, action.parentId, newNode, selfClone),
         activeAddFormNodeId: null,
       };
+    }
     case 'DELETE_NODE':
       return { ...state, root: deleteNode(state.root, action.nodeId) };
     case 'TOGGLE_EXPAND':

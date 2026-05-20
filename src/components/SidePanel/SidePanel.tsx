@@ -78,7 +78,7 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
     node.metrics?.maxDrawdown != null ? String(node.metrics.maxDrawdown) : ''
   );
   const [localValue, setLocalValue] = useState(
-    node.currentValue != null ? String(node.currentValue) : ''
+    node.currentValue != null ? String(Math.round(node.currentValue)) : ''
   );
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
     setLocalReturn(node.metrics?.expectedReturn != null ? String(node.metrics.expectedReturn) : '');
     setLocalVolatility(node.metrics?.volatility != null ? String(node.metrics.volatility) : '');
     setLocalDrawdown(node.metrics?.maxDrawdown != null ? String(node.metrics.maxDrawdown) : '');
-    setLocalValue(node.currentValue != null ? String(node.currentValue) : '');
+    setLocalValue(node.currentValue != null ? String(Math.round(node.currentValue)) : '');
   }, [node.id]);
 
   useEffect(() => {
@@ -127,8 +127,8 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
       if (node.currentValue != null) dispatch({ type: 'UPDATE_NODE', nodeId: node.id, updates: { currentValue: undefined } });
       return;
     }
-    const val = parseFloat(normalizeDecimal(localValue));
-    if (isNaN(val) || val < 0) { setLocalValue(node.currentValue != null ? String(node.currentValue) : ''); return; }
+    const val = Math.round(parseFloat(normalizeDecimal(localValue)));
+    if (isNaN(val) || val < 0) { setLocalValue(node.currentValue != null ? String(Math.round(node.currentValue)) : ''); return; }
     if (val !== node.currentValue) dispatch({ type: 'UPDATE_NODE', nodeId: node.id, updates: { currentValue: val } });
   }
 

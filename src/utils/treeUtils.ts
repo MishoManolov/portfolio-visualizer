@@ -3,14 +3,27 @@ import type { PortfolioNode } from '../types';
 export function addNode(
   root: PortfolioNode,
   parentId: string,
-  newNode: PortfolioNode
+  newNode: PortfolioNode,
+  // When a data-bearing leaf gains its first child, a self-clone carrying the
+  // leaf's metrics/value is inserted alongside the new child so nothing is lost.
+  selfClone?: PortfolioNode,
 ): PortfolioNode {
   if (root.id === parentId) {
+    if (selfClone) {
+      return {
+        ...root,
+        description: undefined,
+        metrics: undefined,
+        currentValue: undefined,
+        children: [selfClone, newNode],
+        isExpanded: true,
+      };
+    }
     return { ...root, children: [...root.children, newNode], isExpanded: true };
   }
   return {
     ...root,
-    children: root.children.map((child) => addNode(child, parentId, newNode)),
+    children: root.children.map((child) => addNode(child, parentId, newNode, selfClone)),
   };
 }
 

@@ -55,9 +55,9 @@ export function NodeCard({
     const amount = parseFloat(amountStr.replace(',', '.'));
     if (isNaN(amount) || amount <= 0) return;
     const current = node.currentValue ?? 0;
-    const next = txMode === 'deposit'
+    const next = Math.round(txMode === 'deposit'
       ? current + amount
-      : Math.max(0, current - amount);
+      : Math.max(0, current - amount));
     onUpdateValue?.(next);
     setTxMode(null);
     setAmountStr('');

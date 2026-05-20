@@ -40,13 +40,18 @@ export function SettingsDrawer({
     setLocalCash(cash !== 0 ? String(Math.round(cash * 100) / 100) : '');
   }, [cash]);
 
-  // Auto-recompute plan whenever relevant state changes, but only if plan is visible
+  // Auto-recompute plan when the portfolio or settings change, but NOT when the
+  // user edits cash manually. Cash is intentionally omitted from deps: when a
+  // fulfill operation fires it changes both computedRoot and cash simultaneously,
+  // so the effect re-runs (due to computedRoot) and picks up the new cash value
+  // from the current render closure. A standalone cash edit must not auto-show
+  // suggestions the user hasn't asked for yet.
   useEffect(() => {
     if (plan !== null) {
-      setPlan(computeRebalancePlan(computedRoot, tolerance, cash));
+      setPlan(computeRebalancePlan(computedRoot, tolerance, cash, displayMode));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [computedRoot, tolerance, cash]);
+  }, [computedRoot, tolerance, displayMode]);
 
   function handleToleranceBlur() {
     const val = parseFloat(localTolerance.replace(',', '.'));
@@ -61,7 +66,7 @@ export function SettingsDrawer({
   }
 
   function handleSuggest() {
-    setPlan(computeRebalancePlan(computedRoot, tolerance, cash));
+    setPlan(computeRebalancePlan(computedRoot, tolerance, cash, displayMode));
     setMethodologyOpen(false);
   }
 
@@ -78,6 +83,32 @@ export function SettingsDrawer({
       dispatch({ type: 'UPDATE_NODE', nodeId: op.assetId, updates: { currentValue: current + op.amount } });
       onSetCash(Math.round((cash - op.amount) * 100) / 100);
     }
+  }
+
+  function handleAutoRebalance() {
+    const livePlan = computeRebalancePlan(computedRoot, tolerance, cash, displayMode);
+    if (livePlan.status !== 'ok' || livePlan.operations.length === 0) return;
+
+    // All dispatches go to the reducer in the same batch; each uses the
+    // pre-operation aggregatedValue from computedRoot (correct, since React
+    // hasn't re-rendered yet). Cash is accumulated sequentially here instead.
+    let newCash = cash;
+    for (const op of livePlan.operations) {
+      const node = findNode(computedRoot, op.assetId);
+      if (!node) continue;
+      const current = node.aggregatedValue;
+
+      if (op.type === 'withdraw') {
+        dispatch({ type: 'UPDATE_NODE', nodeId: op.assetId, updates: { currentValue: Math.max(0, current - op.amount) } });
+        newCash += op.amount;
+      } else {
+        if (newCash < op.amount) continue;
+        dispatch({ type: 'UPDATE_NODE', nodeId: op.assetId, updates: { currentValue: current + op.amount } });
+        newCash -= op.amount;
+      }
+    }
+    onSetCash(Math.round(newCash * 100) / 100);
+    setPlan(null);
   }
 
   return (
@@ -113,14 +144,14 @@ export function SettingsDrawer({
 
         <div className="settings-drawer__body">
 
-          {/* ── Capital ──────────────────────────────────────────── */}
+          {/* ── Capital & tolerance ──────────────────────────────── */}
           <section className="settings-section">
-            <div className="settings-section__label">Portfolio capital</div>
+            <div className="settings-section__label">Portfolio</div>
             <div className="settings-capital-grid">
               <div className="settings-capital-row settings-capital-row--readonly">
                 <span className="settings-capital-row__label">Invested</span>
                 <span className="settings-capital-row__value">
-                  {investedCapital > 0 ? investedCapital.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—'}
+                  {investedCapital > 0 ? investedCapital.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—'}
                 </span>
               </div>
               <label className="settings-capital-row">
@@ -140,6 +171,22 @@ export function SettingsDrawer({
                   onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                   aria-label="Cash balance (positive = growing, negative = reducing)"
                 />
+              </label>
+              <label className="settings-capital-row">
+                <span className="settings-capital-row__label">Drift tolerance</span>
+                <div className="settings-capital-row__right">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="settings-capital-row__input settings-capital-row__input--narrow"
+                    value={localTolerance}
+                    onChange={e => setLocalTolerance(e.target.value)}
+                    onBlur={handleToleranceBlur}
+                    onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                    aria-label="Drift tolerance in percent"
+                  />
+                  <span className="settings-capital-row__unit">%</span>
+                </div>
               </label>
             </div>
           </section>
@@ -161,39 +208,31 @@ export function SettingsDrawer({
             </div>
           </section>
 
-          {/* ── Drift tolerance ───────────────────────────────────── */}
-          <section className="settings-section">
-            <div className="settings-section__label">Drift tolerance</div>
-            <div className="settings-tolerance">
-              <input
-                type="text"
-                inputMode="decimal"
-                className="settings-tolerance__input"
-                value={localTolerance}
-                onChange={e => setLocalTolerance(e.target.value)}
-                onBlur={handleToleranceBlur}
-                onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                aria-label="Drift tolerance in percent"
-              />
-              <span className="settings-tolerance__unit">%</span>
-            </div>
-          </section>
-
           {/* ── Rebalancing ───────────────────────────────────────── */}
           <section className="settings-section">
             <div className="settings-section__label">Rebalancing</div>
-            <button className="settings-rebalance-btn" onClick={handleSuggest}>
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M4 12h16M4 12l4-4M4 12l4 4M20 12l-4-4M20 12l-4 4"
-                  stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Suggest Re-allocations
-            </button>
+            <div className="settings-rebalance-actions">
+              <button className="settings-rebalance-btn" onClick={handleSuggest}>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 12h16M4 12l4-4M4 12l4 4M20 12l-4-4M20 12l-4 4"
+                    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Suggest
+              </button>
+              <button className="settings-rebalance-btn settings-rebalance-btn--auto" onClick={handleAutoRebalance}>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M13 2L4 13h7l-1 9 10-12h-7l1-8z"
+                    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Auto Apply
+              </button>
+            </div>
 
             {plan && (
               <RebalancePlanView
                 plan={plan}
                 tolerance={tolerance}
+                displayMode={displayMode}
                 currentCash={cash}
                 methodologyOpen={methodologyOpen}
                 onToggleMethodology={() => setMethodologyOpen(o => !o)}
@@ -211,10 +250,11 @@ export function SettingsDrawer({
 /* ── Rebalance result panel ──────────────────────────────────── */
 
 function RebalancePlanView({
-  plan, tolerance, currentCash, methodologyOpen, onToggleMethodology, onFulfill,
+  plan, tolerance, displayMode, currentCash, methodologyOpen, onToggleMethodology, onFulfill,
 }: {
   plan: RebalancePlan;
   tolerance: number;
+  displayMode: DisplayMode;
   currentCash: number;
   methodologyOpen: boolean;
   onToggleMethodology: () => void;
@@ -222,6 +262,10 @@ function RebalancePlanView({
 }) {
   const withdrawals = plan.operations.filter(o => o.type === 'withdraw');
   const deposits    = plan.operations.filter(o => o.type === 'deposit');
+
+  const toleranceLabel = displayMode === 'relative'
+    ? `${tolerance}% of each asset's own target`
+    : `${tolerance}% of total capital`;
 
   return (
     <div className="rebalance-result">
@@ -245,7 +289,12 @@ function RebalancePlanView({
             Each asset's <strong>target value</strong> is derived from its allocation percentage applied to the total capital (invested + cash balance).
           </p>
           <p>
-            Assets above their target by more than the {tolerance}% tolerance generate a <strong>Withdraw</strong> operation. Assets below target generate a <strong>Deposit</strong> operation.
+            The drift band is currently in <strong>{displayMode === 'relative' ? 'relative' : 'absolute'} mode</strong> ({toleranceLabel}
+            {displayMode === 'relative'
+              ? ' — larger positions get proportionally more slack'
+              : ' — every asset gets the same fixed band'
+            }).
+            Assets outside their band generate a <strong>Withdraw</strong> (overweight) or <strong>Deposit</strong> (underweight) operation.
             Withdrawals are listed first — completing them replenishes the cash balance which can then fund deposits.
           </p>
           <p>
