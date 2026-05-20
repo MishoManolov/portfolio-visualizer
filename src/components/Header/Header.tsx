@@ -1,4 +1,4 @@
-import type { DisplayMode } from '../../types';
+import type { DisplayMode, ComputedNode } from '../../types';
 import { SettingsDrawer } from '../SettingsDrawer/SettingsDrawer';
 import './Header.css';
 
@@ -7,9 +7,10 @@ interface HeaderProps {
   onToggleMode: () => void;
   tolerance: number;
   onSetTolerance: (t: number) => void;
+  computedRoot: ComputedNode;
 }
 
-export function Header({ displayMode, onToggleMode, tolerance, onSetTolerance }: HeaderProps) {
+export function Header({ displayMode, onToggleMode, tolerance, onSetTolerance, computedRoot }: HeaderProps) {
   return (
     <header className="header">
       <div className="header__inner">
@@ -18,6 +19,7 @@ export function Header({ displayMode, onToggleMode, tolerance, onSetTolerance }:
           onToggleMode={onToggleMode}
           tolerance={tolerance}
           onSetTolerance={onSetTolerance}
+          computedRoot={computedRoot}
         />
         <div className="header__title-group">
           <h1 className="header__title">Portfolio Visualizer</h1>

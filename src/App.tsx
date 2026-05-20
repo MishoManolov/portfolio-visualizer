@@ -95,6 +95,7 @@ function App() {
         onToggleMode={handleToggleMode}
         tolerance={state.tolerance}
         onSetTolerance={handleSetTolerance}
+        computedRoot={computedRoot}
       />
       <main>
         <TreeView
