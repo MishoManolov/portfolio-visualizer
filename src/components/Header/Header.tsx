@@ -7,10 +7,18 @@ interface HeaderProps {
   onToggleMode: () => void;
   tolerance: number;
   onSetTolerance: (t: number) => void;
+  investedCapital: number;
+  onSetInvestedCapital: (v: number) => void;
+  cash: number;
+  onSetCash: (v: number) => void;
   computedRoot: ComputedNode;
 }
 
-export function Header({ displayMode, onToggleMode, tolerance, onSetTolerance, computedRoot }: HeaderProps) {
+export function Header({
+  displayMode, onToggleMode, tolerance, onSetTolerance,
+  investedCapital, onSetInvestedCapital, cash, onSetCash,
+  computedRoot,
+}: HeaderProps) {
   return (
     <header className="header">
       <div className="header__inner">
@@ -19,6 +27,10 @@ export function Header({ displayMode, onToggleMode, tolerance, onSetTolerance, c
           onToggleMode={onToggleMode}
           tolerance={tolerance}
           onSetTolerance={onSetTolerance}
+          investedCapital={investedCapital}
+          onSetInvestedCapital={onSetInvestedCapital}
+          cash={cash}
+          onSetCash={onSetCash}
           computedRoot={computedRoot}
         />
         <div className="header__title-group">

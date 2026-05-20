@@ -36,6 +36,29 @@ export function TreeView({
   const dragStart = useRef({ mouseX: 0, mouseY: 0, panX: 0, panY: 0 });
   const hasDragged = useRef(false);
 
+  // Auto-fit on mount: scale + center the tree so it fills the viewport
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const rafId = requestAnimationFrame(() => {
+      const rootLi = container.querySelector('.tree-view__root > li') as HTMLElement | null;
+      if (!rootLi) return;
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
+      // Add canvas padding (24px × 2 horizontal, 32 + 48 vertical)
+      const tw = rootLi.offsetWidth + 48;
+      const th = rootLi.offsetHeight + 80;
+      const fitZoom = clampZoom(Math.min(cw / tw, ch / th, 1));
+      onZoom(fitZoom);
+      setPan({
+        x: (cw - tw * fitZoom) / 2,
+        y: (ch - th * fitZoom) / 2,
+      });
+    });
+    return () => cancelAnimationFrame(rafId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Non-passive wheel: ctrl+scroll → zoom-to-cursor, plain scroll → pan
   useEffect(() => {
     const el = containerRef.current;

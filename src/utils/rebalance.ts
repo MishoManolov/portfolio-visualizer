@@ -35,32 +35,39 @@ function collectLeaves(node: ComputedNode, out: ComputedNode[]) {
  *
  * We target the exact allocation value, which always lands within tolerance.
  */
-export function computeRebalancePlan(root: ComputedNode, tolerance: number): RebalancePlan {
-  const totalValue = root.aggregatedValue;
+export function computeRebalancePlan(root: ComputedNode, tolerance: number, cash = 0): RebalancePlan {
+  const investedValue = root.aggregatedValue;
+  // Cash is treated as an additional pool to deploy; it widens each asset's target proportionally.
+  const totalCapital = investedValue + Math.max(0, cash);
 
   const leaves: ComputedNode[] = [];
   collectLeaves(root, leaves);
 
-  // totalValue is zero only when no leaf has any currentValue set
-  if (leaves.length === 0 || totalValue <= 0) {
+  // totalCapital is zero only when no leaf has any currentValue and cash is also zero
+  if (leaves.length === 0 || totalCapital <= 0) {
     return { status: 'no-values', totalValue: 0, trackedLeafCount: 0, transactions: [] };
   }
 
-  const toleranceValue = (tolerance / 100) * totalValue;
+  const toleranceValue = (tolerance / 100) * totalCapital;
 
   // Untracked leaves have aggregatedValue = 0, so they appear underweight and
   // naturally receive funds in the plan — no special-casing needed.
   const items = leaves.map(leaf => ({
     name: leaf.name,
-    target: (leaf.absolutePercent / 100) * totalValue,
+    target: (leaf.absolutePercent / 100) * totalCapital,
     actual: leaf.aggregatedValue,
-    remaining: leaf.aggregatedValue - (leaf.absolutePercent / 100) * totalValue,
+    remaining: leaf.aggregatedValue - (leaf.absolutePercent / 100) * totalCapital,
   }));
+
+  // Cash has a target of 0 — it must be fully deployed into assets.
+  if (cash > 0.005) {
+    items.push({ name: 'Cash', target: 0, actual: cash, remaining: cash });
+  }
 
   const anyDrifted = items.some(i => Math.abs(i.remaining) > toleranceValue);
 
   if (!anyDrifted) {
-    return { status: 'in-tolerance', totalValue, trackedLeafCount: leaves.length, transactions: [] };
+    return { status: 'in-tolerance', totalValue: totalCapital, trackedLeafCount: leaves.length, transactions: [] };
   }
 
   const sellers = items.filter(i => i.remaining >  0.005).sort((a, b) => b.remaining - a.remaining);
@@ -79,7 +86,7 @@ export function computeRebalancePlan(root: ComputedNode, tolerance: number): Reb
         fromName: seller.name,
         toName: buyer.name,
         amount,
-        portfolioPercent: (amount / totalValue) * 100,
+        portfolioPercent: (amount / totalCapital) * 100,
       });
     }
 
@@ -90,5 +97,5 @@ export function computeRebalancePlan(root: ComputedNode, tolerance: number): Reb
     if (-buyer.remaining < 0.005) bi++;
   }
 
-  return { status: 'ok', totalValue, trackedLeafCount: leaves.length, transactions };
+  return { status: 'ok', totalValue: totalCapital, trackedLeafCount: leaves.length, transactions };
 }

@@ -9,14 +9,22 @@ interface SettingsDrawerProps {
   onToggleMode: () => void;
   tolerance: number;
   onSetTolerance: (t: number) => void;
+  investedCapital: number;
+  onSetInvestedCapital: (v: number) => void;
+  cash: number;
+  onSetCash: (v: number) => void;
   computedRoot: ComputedNode;
 }
 
 export function SettingsDrawer({
-  displayMode, onToggleMode, tolerance, onSetTolerance, computedRoot,
+  displayMode, onToggleMode, tolerance, onSetTolerance,
+  investedCapital, onSetInvestedCapital, cash, onSetCash,
+  computedRoot,
 }: SettingsDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [localTolerance, setLocalTolerance] = useState(String(tolerance));
+  const [localInvested, setLocalInvested] = useState(investedCapital > 0 ? String(investedCapital) : '');
+  const [localCash, setLocalCash] = useState(cash > 0 ? String(cash) : '');
   const [plan, setPlan] = useState<RebalancePlan | null>(null);
   const [methodologyOpen, setMethodologyOpen] = useState(false);
 
@@ -29,8 +37,14 @@ export function SettingsDrawer({
     if (val !== tolerance) onSetTolerance(val);
   }
 
+  function handleCapitalBlur(raw: string, current: number, setter: (v: number) => void) {
+    const val = parseFloat(raw.replace(',', '.').replace(/\s/g, ''));
+    if (isNaN(val) || val < 0) { return; }
+    if (val !== current) setter(val);
+  }
+
   function handleSuggest() {
-    setPlan(computeRebalancePlan(computedRoot, tolerance));
+    setPlan(computeRebalancePlan(computedRoot, tolerance, cash));
     setMethodologyOpen(false);
   }
 
@@ -81,6 +95,41 @@ export function SettingsDrawer({
         </div>
 
         <div className="settings-drawer__body">
+
+          {/* ── Capital ──────────────────────────────────────────── */}
+          <section className="settings-section">
+            <div className="settings-section__label">Portfolio capital</div>
+            <div className="settings-capital-grid">
+              <label className="settings-capital-row">
+                <span className="settings-capital-row__label">Invested</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="settings-capital-row__input"
+                  placeholder="0"
+                  value={localInvested}
+                  onChange={e => setLocalInvested(e.target.value)}
+                  onBlur={() => handleCapitalBlur(localInvested, investedCapital, onSetInvestedCapital)}
+                  onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                  aria-label="Invested capital"
+                />
+              </label>
+              <label className="settings-capital-row">
+                <span className="settings-capital-row__label">Cash</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="settings-capital-row__input"
+                  placeholder="0"
+                  value={localCash}
+                  onChange={e => setLocalCash(e.target.value)}
+                  onBlur={() => handleCapitalBlur(localCash, cash, onSetCash)}
+                  onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                  aria-label="Cash (uninvested capital)"
+                />
+              </label>
+            </div>
+          </section>
 
           {/* ── Display mode ─────────────────────────────────────── */}
           <section className="settings-section">

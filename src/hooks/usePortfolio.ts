@@ -9,6 +9,8 @@ const STORAGE_KEY = 'portfolio-visualizer-tree';
 interface PersistedState {
   root: PortfolioNode;
   tolerance?: number;
+  investedCapital?: number;
+  cash?: number;
 }
 
 function loadFromStorage(): PersistedState | null {
@@ -33,6 +35,8 @@ function getInitialState(): PortfolioState {
     displayMode: 'relative' as DisplayMode,
     activeAddFormNodeId: null,
     tolerance: saved?.tolerance ?? 5,
+    investedCapital: saved?.investedCapital ?? 0,
+    cash: saved?.cash ?? 0,
   };
 }
 
@@ -66,6 +70,10 @@ function reducer(state: PortfolioState, action: PortfolioAction): PortfolioState
       return { ...state, root: updateNode(state.root, action.nodeId, action.updates) };
     case 'SET_TOLERANCE':
       return { ...state, tolerance: action.tolerance };
+    case 'SET_INVESTED_CAPITAL':
+      return { ...state, investedCapital: action.value };
+    case 'SET_CASH':
+      return { ...state, cash: action.value };
     default:
       return state;
   }
@@ -81,11 +89,16 @@ export function usePortfolio() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ root: state.root, tolerance: state.tolerance }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        root: state.root,
+        tolerance: state.tolerance,
+        investedCapital: state.investedCapital,
+        cash: state.cash,
+      }));
     } catch {
       // quota exceeded or private browsing — ignore
     }
-  }, [state.root, state.tolerance]);
+  }, [state.root, state.tolerance, state.investedCapital, state.cash]);
 
   return { state, dispatch, computedRoot };
 }

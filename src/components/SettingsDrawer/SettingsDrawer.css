@@ -130,6 +130,45 @@
   color: var(--color-text-muted);
 }
 
+/* ── Capital inputs ──────────────────────────────────────────── */
+
+.settings-capital-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-capital-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  cursor: text;
+}
+
+.settings-capital-row__label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.settings-capital-row__input {
+  width: 110px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  outline: none;
+}
+
 /* ── Toggle ──────────────────────────────────────────────────── */
 
 .settings-toggle {
