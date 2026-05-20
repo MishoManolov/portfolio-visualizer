@@ -167,40 +167,118 @@
   font-weight: 500;
 }
 
-.node-card__actions {
+/* ── Deposit / Withdraw ──────────────────────────────────────── */
+
+.node-card__tx {
+  margin-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  flex-shrink: 0;
+  gap: 6px;
 }
 
-.node-card__action-btn {
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: transparent;
+.node-card__tx-btns {
+  display: flex;
+  gap: 5px;
+}
+
+.node-card__tx-btn {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--color-text-muted);
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 
-.node-card__action-btn svg {
+.node-card__tx-btn svg {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+}
+
+.node-card__tx-btn--deposit:hover,
+.node-card__tx-btn--deposit.node-card__tx-btn--active {
+  background: var(--color-success-light);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.node-card__tx-btn--withdraw:hover,
+.node-card__tx-btn--withdraw.node-card__tx-btn--active {
+  background: var(--color-danger-light);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.node-card__tx-form {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+}
+
+.node-card__tx-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.node-card__tx-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.node-card__tx-confirm,
+.node-card__tx-cancel {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  transition: background 0.12s;
+}
+
+.node-card__tx-confirm svg,
+.node-card__tx-cancel svg {
   width: 12px;
   height: 12px;
 }
 
-.node-card__action-btn--add:hover,
-.node-card__action-btn--add.node-card__action-btn--active {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+.node-card__tx-confirm {
+  color: var(--color-success);
 }
 
-.node-card__action-btn--delete:hover {
+.node-card__tx-confirm:hover {
+  background: var(--color-success-light);
+}
+
+.node-card__tx-cancel {
+  color: var(--color-text-muted);
+}
+
+.node-card__tx-cancel:hover {
   background: var(--color-danger-light);
-  border-color: var(--color-danger);
   color: var(--color-danger);
 }

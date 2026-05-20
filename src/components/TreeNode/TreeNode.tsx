@@ -146,7 +146,6 @@ export function TreeNode({
 
   // ── Handlers ──────────────────────────────────────────────────
   function handleToggleExpand() { dispatch({ type: 'TOGGLE_EXPAND', nodeId: node.id }); }
-  function handleAddChild() { dispatch({ type: 'SET_ACTIVE_ADD_FORM', nodeId: node.id }); }
   function handleAddSubmit(name: string, percent: number) {
     dispatch({ type: 'ADD_NODE', parentId: node.id, name, percent });
   }
@@ -189,10 +188,11 @@ export function TreeNode({
           node={node}
           displayMode={displayMode}
           isRoot={isRoot}
-          isAddFormOpen={isAddFormOpen}
           isOverlapFocused={isFocused}
           onToggleExpand={handleToggleExpand}
-          onAddChild={handleAddChild}
+          onUpdateValue={node.children.length === 0
+            ? (v) => dispatch({ type: 'UPDATE_NODE', nodeId: node.id, updates: { currentValue: v } })
+            : undefined}
           onCardBodyClick={handleFocus}
         />
         {isAddFormOpen && (
