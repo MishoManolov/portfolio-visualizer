@@ -3,6 +3,7 @@ import { usePortfolio } from './hooks/usePortfolio';
 import { Header } from './components/Header/Header';
 import { TreeView } from './components/TreeView/TreeView';
 import { SidePanel } from './components/SidePanel/SidePanel';
+import { WelcomePage } from './components/WelcomePage/WelcomePage';
 import type { ComputedNode } from './types';
 
 function getPathToNode(root: ComputedNode, targetId: string): Set<string> {
@@ -91,6 +92,10 @@ function App() {
     dispatch({ type: 'SET_CASH', value: v });
   }
 
+  if (!state.isInitialized) {
+    return <WelcomePage dispatch={dispatch} />;
+  }
+
   return (
     <>
       <Header
@@ -101,6 +106,7 @@ function App() {
         cash={state.cash}
         onSetCash={handleSetCash}
         computedRoot={computedRoot}
+        portfolioRoot={state.root}
         dispatch={dispatch}
       />
       <main>

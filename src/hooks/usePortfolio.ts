@@ -1,6 +1,5 @@
 import { useReducer, useMemo, useEffect } from 'react';
 import type { PortfolioState, PortfolioAction, DisplayMode, PortfolioNode } from '../types';
-import { initialData } from '../data/initialData';
 import { buildComputedTree, annotateDrift } from '../utils/calculations';
 import { addNode, deleteNode, toggleExpand, updateNode } from '../utils/treeUtils';
 
@@ -27,14 +26,24 @@ function loadFromStorage(): PersistedState | null {
   }
 }
 
+// Placeholder root used only when isInitialized is false — never displayed.
+const BLANK_ROOT: PortfolioNode = {
+  id: 'blank',
+  name: 'Portfolio',
+  relativePercent: 100,
+  children: [],
+  isExpanded: true,
+};
+
 function getInitialState(): PortfolioState {
   const saved = loadFromStorage();
   return {
-    root: saved?.root ?? initialData,
+    root: saved?.root ?? BLANK_ROOT,
     displayMode: 'relative' as DisplayMode,
     activeAddFormNodeId: null,
     tolerance: saved?.tolerance ?? 5,
     cash: saved?.cash ?? 0,
+    isInitialized: saved !== null,
   };
 }
 
@@ -55,6 +64,20 @@ function hasLeafData(node: PortfolioNode): boolean {
 
 function reducer(state: PortfolioState, action: PortfolioAction): PortfolioState {
   switch (action.type) {
+    case 'CREATE_PORTFOLIO':
+      return {
+        ...state,
+        root: {
+          id: crypto.randomUUID(),
+          name: action.name,
+          relativePercent: 100,
+          children: [],
+          isExpanded: true,
+        },
+        cash: 0,
+        activeAddFormNodeId: null,
+        isInitialized: true,
+      };
     case 'ADD_NODE': {
       const newNode: PortfolioNode = {
         id: crypto.randomUUID(),
@@ -103,6 +126,15 @@ function reducer(state: PortfolioState, action: PortfolioAction): PortfolioState
       return { ...state, tolerance: action.tolerance };
     case 'SET_CASH':
       return { ...state, cash: action.value };
+    case 'IMPORT_PORTFOLIO':
+      return {
+        ...state,
+        root: action.root,
+        tolerance: action.tolerance ?? state.tolerance,
+        cash: action.cash ?? 0,
+        activeAddFormNodeId: null,
+        isInitialized: true,
+      };
     default:
       return state;
   }
@@ -117,6 +149,10 @@ export function usePortfolio() {
   }, [state.root, state.tolerance]);
 
   useEffect(() => {
+    // Don't write to storage until the user has actually created/imported a
+    // portfolio — otherwise a first visit would persist the blank placeholder
+    // and the welcome screen would never appear again.
+    if (!state.isInitialized) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         root: state.root,
@@ -126,7 +162,7 @@ export function usePortfolio() {
     } catch {
       // quota exceeded or private browsing — ignore
     }
-  }, [state.root, state.tolerance, state.cash]);
+  }, [state.root, state.tolerance, state.cash, state.isInitialized]);
 
   return { state, dispatch, computedRoot };
 }

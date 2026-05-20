@@ -1,8 +1,15 @@
-import { useState, useEffect } from 'react';
-import type { DisplayMode, ComputedNode, PortfolioAction } from '../../types';
+import { useState, useEffect, useRef } from 'react';
+import type { DisplayMode, ComputedNode, PortfolioAction, PortfolioNode, NodeMetrics } from '../../types';
 import { computeRebalancePlan, type RebalancePlan, type RebalanceOperation } from '../../utils/rebalance';
 import { formatValue, formatPercent } from '../../utils/calculations';
 import './SettingsDrawer.css';
+
+interface PortfolioFile {
+  version: number;
+  root: PortfolioNode;
+  tolerance?: number;
+  cash?: number;
+}
 
 interface SettingsDrawerProps {
   displayMode: DisplayMode;
@@ -12,6 +19,7 @@ interface SettingsDrawerProps {
   cash: number;
   onSetCash: (v: number) => void;
   computedRoot: ComputedNode;
+  portfolioRoot: PortfolioNode;
   dispatch: React.Dispatch<PortfolioAction>;
 }
 
@@ -24,9 +32,34 @@ function findNode(node: ComputedNode, id: string): ComputedNode | null {
   return null;
 }
 
+function isValidNode(obj: unknown): obj is PortfolioNode {
+  if (typeof obj !== 'object' || obj === null) return false;
+  const n = obj as Record<string, unknown>;
+  return (
+    typeof n.id === 'string' &&
+    typeof n.name === 'string' &&
+    typeof n.relativePercent === 'number' &&
+    Array.isArray(n.children) &&
+    (n.children as unknown[]).every(isValidNode)
+  );
+}
+
+function normalizeNode(obj: Record<string, unknown>): PortfolioNode {
+  return {
+    id: obj.id as string,
+    name: obj.name as string,
+    relativePercent: obj.relativePercent as number,
+    isExpanded: (obj.isExpanded as boolean | undefined) ?? false,
+    description: obj.description as string | undefined,
+    metrics: obj.metrics as NodeMetrics | undefined,
+    currentValue: obj.currentValue as number | undefined,
+    children: (obj.children as Record<string, unknown>[]).map(normalizeNode),
+  };
+}
+
 export function SettingsDrawer({
   displayMode, onToggleMode, tolerance, onSetTolerance,
-  cash, onSetCash, computedRoot, dispatch,
+  cash, onSetCash, computedRoot, portfolioRoot, dispatch,
 }: SettingsDrawerProps) {
   const investedCapital = computedRoot.aggregatedValue;
   const [isOpen, setIsOpen] = useState(false);
@@ -34,6 +67,8 @@ export function SettingsDrawer({
   const [localCash, setLocalCash] = useState(cash !== 0 ? String(cash) : '');
   const [plan, setPlan] = useState<RebalancePlan | null>(null);
   const [methodologyOpen, setMethodologyOpen] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Keep localCash in sync when cash changes externally (e.g. after fulfilling an operation)
   useEffect(() => {
@@ -109,6 +144,50 @@ export function SettingsDrawer({
     }
     onSetCash(Math.round(newCash * 100) / 100);
     setPlan(null);
+  }
+
+  function handleExport() {
+    const file: PortfolioFile = { version: 1, root: portfolioRoot, tolerance, cash };
+    const blob = new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `portfolio-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImportClick() {
+    setImportError(null);
+    fileInputRef.current?.click();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset so the same file can be re-imported if needed
+    e.target.value = '';
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const raw = JSON.parse(ev.target?.result as string) as unknown;
+        if (typeof raw !== 'object' || raw === null) throw new Error('Invalid file structure.');
+        const data = raw as Record<string, unknown>;
+        if (!isValidNode(data.root)) throw new Error('File does not contain a valid portfolio tree.');
+        dispatch({
+          type: 'IMPORT_PORTFOLIO',
+          root: normalizeNode(data.root as unknown as Record<string, unknown>),
+          tolerance: typeof data.tolerance === 'number' ? data.tolerance : undefined,
+          cash: typeof data.cash === 'number' ? data.cash : undefined,
+        });
+        setImportError(null);
+      } catch (err) {
+        setImportError(err instanceof Error ? err.message : 'Could not read file.');
+      }
+    };
+    reader.onerror = () => setImportError('Could not read file.');
+    reader.readAsText(file);
   }
 
   return (
@@ -239,6 +318,37 @@ export function SettingsDrawer({
                 onFulfill={handleFulfill}
               />
             )}
+          </section>
+
+          {/* ── Export / Import ───────────────────────────────────── */}
+          <section className="settings-section">
+            <div className="settings-section__label">Portfolio file</div>
+            <div className="settings-rebalance-actions">
+              <button className="settings-rebalance-btn" onClick={handleExport}>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 3v13M7 11l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M4 19h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+                Export
+              </button>
+              <button className="settings-rebalance-btn settings-rebalance-btn--auto" onClick={handleImportClick}>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 21V8M7 13l5-5 5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M4 5h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+                Import
+              </button>
+            </div>
+            {importError && (
+              <p className="settings-import-error">{importError}</p>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,application/json"
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+            />
           </section>
 
         </div>

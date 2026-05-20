@@ -56,6 +56,7 @@ export interface PortfolioState {
   activeAddFormNodeId: string | null;
   tolerance: number;
   cash: number;
+  isInitialized: boolean;
 }
 
 export type PortfolioAction =
@@ -66,4 +67,6 @@ export type PortfolioAction =
   | { type: 'SET_ACTIVE_ADD_FORM'; nodeId: string | null }
   | { type: 'UPDATE_NODE'; nodeId: string; updates: { name?: string; description?: string; relativePercent?: number; currentValue?: number; metrics?: Partial<NodeMetrics> } }
   | { type: 'SET_TOLERANCE'; tolerance: number }
-  | { type: 'SET_CASH'; value: number };
+  | { type: 'SET_CASH'; value: number }
+  | { type: 'IMPORT_PORTFOLIO'; root: PortfolioNode; tolerance?: number; cash?: number }
+  | { type: 'CREATE_PORTFOLIO'; name: string };
