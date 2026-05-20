@@ -167,71 +167,68 @@
   font-weight: 500;
 }
 
-/* ── Deposit / Withdraw ──────────────────────────────────────── */
+/* ── Right-side action buttons ───────────────────────────────── */
 
-.node-card__tx {
-  margin-top: 8px;
+.node-card__actions {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.node-card__tx-btns {
-  display: flex;
-  gap: 5px;
-}
-
-.node-card__tx-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 4px 6px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: transparent;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
-}
-
-.node-card__tx-btn svg {
-  width: 11px;
-  height: 11px;
+  gap: 3px;
   flex-shrink: 0;
 }
 
-.node-card__tx-btn--deposit:hover,
-.node-card__tx-btn--deposit.node-card__tx-btn--active {
+.node-card__action-btn {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  padding: 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.node-card__action-btn svg {
+  width: 11px;
+  height: 11px;
+}
+
+.node-card__action-btn--deposit:hover,
+.node-card__action-btn--active-deposit {
   background: var(--color-success-light);
   border-color: var(--color-success);
   color: var(--color-success);
 }
 
-.node-card__tx-btn--withdraw:hover,
-.node-card__tx-btn--withdraw.node-card__tx-btn--active {
+.node-card__action-btn--withdraw:hover,
+.node-card__action-btn--active-withdraw {
   background: var(--color-danger-light);
   border-color: var(--color-danger);
   color: var(--color-danger);
 }
 
+/* ── Inline amount form ──────────────────────────────────────── */
+
 .node-card__tx-form {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 5px 8px;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: 3px 6px;
 }
 
 .node-card__tx-label {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
   flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
 .node-card__tx-input {
@@ -262,23 +259,11 @@
 
 .node-card__tx-confirm svg,
 .node-card__tx-cancel svg {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
 }
 
-.node-card__tx-confirm {
-  color: var(--color-success);
-}
-
-.node-card__tx-confirm:hover {
-  background: var(--color-success-light);
-}
-
-.node-card__tx-cancel {
-  color: var(--color-text-muted);
-}
-
-.node-card__tx-cancel:hover {
-  background: var(--color-danger-light);
-  color: var(--color-danger);
-}
+.node-card__tx-confirm { color: var(--color-success); }
+.node-card__tx-confirm:hover { background: var(--color-success-light); }
+.node-card__tx-cancel { color: var(--color-text-muted); }
+.node-card__tx-cancel:hover { background: var(--color-danger-light); color: var(--color-danger); }

@@ -144,67 +144,66 @@ export function NodeCard({
               Children sum: {formatPercent(node.childrenSum)}
             </div>
           )}
-
-          {/* ── Deposit / Withdraw ──────────────────────────────── */}
-          {isLeaf && onUpdateValue && (
-            <div className="node-card__tx" onClick={stopProp}>
-              <div className="node-card__tx-btns">
-                <button
-                  className={`node-card__tx-btn node-card__tx-btn--deposit${txMode === 'deposit' ? ' node-card__tx-btn--active' : ''}`}
-                  onClick={e => openMode('deposit', e)}
-                  title="Deposit"
-                >
-                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <line x1="7" y1="2" x2="7" y2="12" />
-                    <line x1="2" y1="7" x2="12" y2="7" />
-                  </svg>
-                  Deposit
-                </button>
-                <button
-                  className={`node-card__tx-btn node-card__tx-btn--withdraw${txMode === 'withdraw' ? ' node-card__tx-btn--active' : ''}`}
-                  onClick={e => openMode('withdraw', e)}
-                  title="Withdraw"
-                >
-                  <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <line x1="2" y1="7" x2="12" y2="7" />
-                  </svg>
-                  Withdraw
-                </button>
-              </div>
-
-              {txMode && (
-                <form className="node-card__tx-form" onSubmit={handleSubmit}>
-                  <span className="node-card__tx-label">
-                    {txMode === 'deposit' ? '+' : '−'}
-                  </span>
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    inputMode="decimal"
-                    className="node-card__tx-input"
-                    placeholder="0"
-                    value={amountStr}
-                    onChange={e => setAmountStr(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Escape') { setTxMode(null); setAmountStr(''); } }}
-                    aria-label={`${txMode} amount`}
-                  />
-                  <button type="submit" className="node-card__tx-confirm" aria-label="Confirm">
-                    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="2 7 6 11 12 3" />
-                    </svg>
-                  </button>
-                  <button type="button" className="node-card__tx-cancel" onClick={handleCancel} aria-label="Cancel">
-                    <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                      <line x1="3" y1="3" x2="11" y2="11" />
-                      <line x1="11" y1="3" x2="3" y2="11" />
-                    </svg>
-                  </button>
-                </form>
-              )}
-            </div>
-          )}
         </div>
+
+        {/* ── Deposit / Withdraw action buttons ──────────────────── */}
+        {isLeaf && onUpdateValue && (
+          <div className="node-card__actions" onClick={stopProp}>
+            <button
+              className={`node-card__action-btn node-card__action-btn--deposit${txMode === 'deposit' ? ' node-card__action-btn--active-deposit' : ''}`}
+              onClick={e => openMode('deposit', e)}
+              title="Deposit"
+              aria-label="Deposit"
+            >
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <line x1="7" y1="2" x2="7" y2="12" />
+                <line x1="2" y1="7" x2="12" y2="7" />
+              </svg>
+            </button>
+            <button
+              className={`node-card__action-btn node-card__action-btn--withdraw${txMode === 'withdraw' ? ' node-card__action-btn--active-withdraw' : ''}`}
+              onClick={e => openMode('withdraw', e)}
+              title="Withdraw"
+              aria-label="Withdraw"
+            >
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <line x1="2" y1="7" x2="12" y2="7" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* ── Inline amount form ─────────────────────────────────────── */}
+      {txMode && (
+        <form className="node-card__tx-form" onSubmit={handleSubmit} onClick={stopProp}>
+          <span className="node-card__tx-label">
+            {txMode === 'deposit' ? 'Deposit' : 'Withdraw'}
+          </span>
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="decimal"
+            className="node-card__tx-input"
+            placeholder="0"
+            value={amountStr}
+            onChange={e => setAmountStr(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Escape') { setTxMode(null); setAmountStr(''); } }}
+            aria-label={`${txMode} amount`}
+          />
+          <button type="submit" className="node-card__tx-confirm" aria-label="Confirm">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="2 7 6 11 12 3" />
+            </svg>
+          </button>
+          <button type="button" className="node-card__tx-cancel" onClick={handleCancel} aria-label="Cancel">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <line x1="3" y1="3" x2="11" y2="11" />
+              <line x1="11" y1="3" x2="3" y2="11" />
+            </svg>
+          </button>
+        </form>
+      )}
     </div>
   );
 }
