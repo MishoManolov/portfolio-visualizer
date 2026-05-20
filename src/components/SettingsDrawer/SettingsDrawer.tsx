@@ -9,8 +9,6 @@ interface SettingsDrawerProps {
   onToggleMode: () => void;
   tolerance: number;
   onSetTolerance: (t: number) => void;
-  investedCapital: number;
-  onSetInvestedCapital: (v: number) => void;
   cash: number;
   onSetCash: (v: number) => void;
   computedRoot: ComputedNode;
@@ -18,12 +16,11 @@ interface SettingsDrawerProps {
 
 export function SettingsDrawer({
   displayMode, onToggleMode, tolerance, onSetTolerance,
-  investedCapital, onSetInvestedCapital, cash, onSetCash,
-  computedRoot,
+  cash, onSetCash, computedRoot,
 }: SettingsDrawerProps) {
+  const investedCapital = computedRoot.aggregatedValue;
   const [isOpen, setIsOpen] = useState(false);
   const [localTolerance, setLocalTolerance] = useState(String(tolerance));
-  const [localInvested, setLocalInvested] = useState(investedCapital > 0 ? String(investedCapital) : '');
   const [localCash, setLocalCash] = useState(cash > 0 ? String(cash) : '');
   const [plan, setPlan] = useState<RebalancePlan | null>(null);
   const [methodologyOpen, setMethodologyOpen] = useState(false);
@@ -37,10 +34,10 @@ export function SettingsDrawer({
     if (val !== tolerance) onSetTolerance(val);
   }
 
-  function handleCapitalBlur(raw: string, current: number, setter: (v: number) => void) {
-    const val = parseFloat(raw.replace(',', '.').replace(/\s/g, ''));
-    if (isNaN(val) || val < 0) { return; }
-    if (val !== current) setter(val);
+  function handleCashBlur() {
+    const val = parseFloat(localCash.replace(',', '.').replace(/\s/g, ''));
+    if (isNaN(val) || val < 0) { setLocalCash(cash > 0 ? String(cash) : ''); return; }
+    if (val !== cash) onSetCash(val);
   }
 
   function handleSuggest() {
@@ -100,20 +97,12 @@ export function SettingsDrawer({
           <section className="settings-section">
             <div className="settings-section__label">Portfolio capital</div>
             <div className="settings-capital-grid">
-              <label className="settings-capital-row">
+              <div className="settings-capital-row settings-capital-row--readonly">
                 <span className="settings-capital-row__label">Invested</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className="settings-capital-row__input"
-                  placeholder="0"
-                  value={localInvested}
-                  onChange={e => setLocalInvested(e.target.value)}
-                  onBlur={() => handleCapitalBlur(localInvested, investedCapital, onSetInvestedCapital)}
-                  onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                  aria-label="Invested capital"
-                />
-              </label>
+                <span className="settings-capital-row__value">
+                  {investedCapital > 0 ? investedCapital.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—'}
+                </span>
+              </div>
               <label className="settings-capital-row">
                 <span className="settings-capital-row__label">Cash</span>
                 <input
@@ -123,7 +112,7 @@ export function SettingsDrawer({
                   placeholder="0"
                   value={localCash}
                   onChange={e => setLocalCash(e.target.value)}
-                  onBlur={() => handleCapitalBlur(localCash, cash, onSetCash)}
+                  onBlur={handleCashBlur}
                   onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                   aria-label="Cash (uninvested capital)"
                 />

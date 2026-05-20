@@ -55,7 +55,6 @@ export interface PortfolioState {
   displayMode: DisplayMode;
   activeAddFormNodeId: string | null;
   tolerance: number;
-  investedCapital: number;
   cash: number;
 }
 
@@ -67,5 +66,4 @@ export type PortfolioAction =
   | { type: 'SET_ACTIVE_ADD_FORM'; nodeId: string | null }
   | { type: 'UPDATE_NODE'; nodeId: string; updates: { name?: string; description?: string; relativePercent?: number; currentValue?: number; metrics?: Partial<NodeMetrics> } }
   | { type: 'SET_TOLERANCE'; tolerance: number }
-  | { type: 'SET_INVESTED_CAPITAL'; value: number }
   | { type: 'SET_CASH'; value: number };

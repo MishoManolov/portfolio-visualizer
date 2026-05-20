@@ -87,9 +87,6 @@ function App() {
   function handleSetTolerance(t: number) {
     dispatch({ type: 'SET_TOLERANCE', tolerance: t });
   }
-  function handleSetInvestedCapital(v: number) {
-    dispatch({ type: 'SET_INVESTED_CAPITAL', value: v });
-  }
   function handleSetCash(v: number) {
     dispatch({ type: 'SET_CASH', value: v });
   }
@@ -101,8 +98,6 @@ function App() {
         onToggleMode={handleToggleMode}
         tolerance={state.tolerance}
         onSetTolerance={handleSetTolerance}
-        investedCapital={state.investedCapital}
-        onSetInvestedCapital={handleSetInvestedCapital}
         cash={state.cash}
         onSetCash={handleSetCash}
         computedRoot={computedRoot}

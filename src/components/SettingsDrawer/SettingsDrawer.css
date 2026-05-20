@@ -150,6 +150,18 @@
   cursor: text;
 }
 
+.settings-capital-row--readonly {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.settings-capital-row__value {
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
 .settings-capital-row__label {
   font-size: 13px;
   color: var(--color-text-secondary);
