@@ -80,3 +80,64 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* ── Zoom controls ───────────────────────────────────────────── */
+
+.zoom-controls {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 3px;
+  z-index: 100;
+  user-select: none;
+}
+
+.zoom-controls__btn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+
+.zoom-controls__btn:hover:not(:disabled) {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+.zoom-controls__btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.zoom-controls__label {
+  min-width: 40px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  padding: 0 2px;
+  border-radius: var(--radius-sm);
+  transition: background 0.12s, color 0.12s;
+}
+
+.zoom-controls__label:hover {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}

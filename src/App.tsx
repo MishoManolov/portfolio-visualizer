@@ -43,9 +43,17 @@ function collectDescendantIds(node: ComputedNode, out: Set<string>) {
   for (const child of node.children) collectDescendantIds(child, out);
 }
 
+const ZOOM_MIN = 0.25;
+const ZOOM_MAX = 2;
+const ZOOM_STEP = 0.1;
+function clampZoom(z: number) {
+  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
+}
+
 function App() {
   const { state, dispatch, computedRoot } = usePortfolio();
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
 
   const highlightedPath = useMemo(
     () => focusedNodeId ? getPathToNode(computedRoot, focusedNodeId) : new Set<string>(),
@@ -98,7 +106,26 @@ function App() {
           onFocusNode={setFocusedNodeId}
           highlightedPath={highlightedPath}
           visibleBranchIds={visibleBranchIds}
+          zoom={zoom}
+          onZoom={setZoom}
         />
+        <div className="zoom-controls">
+          <button
+            className="zoom-controls__btn"
+            onClick={() => setZoom(z => clampZoom(z - ZOOM_STEP))}
+            disabled={zoom <= ZOOM_MIN}
+            aria-label="Zoom out"
+          >−</button>
+          <span className="zoom-controls__label" onClick={() => setZoom(1)} title="Reset zoom">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            className="zoom-controls__btn"
+            onClick={() => setZoom(z => clampZoom(z + ZOOM_STEP))}
+            disabled={zoom >= ZOOM_MAX}
+            aria-label="Zoom in"
+          >+</button>
+        </div>
         {focusedNode && (
           <SidePanel
             node={focusedNode}

@@ -1,14 +1,25 @@
 .tree-view {
   flex: 1;
   min-width: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
+  cursor: grab;
+  outline: none;
+  user-select: none;
+}
+
+.tree-view--dragging {
+  cursor: grabbing;
+}
+
+.tree-view__canvas {
+  transform-origin: 0 0;
+  will-change: transform;
   padding: 32px 24px 48px;
 }
 
 .tree-view__root {
   list-style: none;
-  min-width: 100%;
+  min-width: 100vw;
   width: max-content;
   margin: 0;
   padding: 0;

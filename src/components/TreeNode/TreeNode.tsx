@@ -15,6 +15,7 @@ interface TreeNodeProps {
   onFocusNode: (id: string | null) => void;
   highlightedPath: Set<string>;
   visibleBranchIds: Set<string>;
+  zoom: number;
 }
 
 interface Connector {
@@ -41,6 +42,7 @@ export function TreeNode({
   onFocusNode,
   highlightedPath,
   visibleBranchIds,
+  zoom,
 }: TreeNodeProps) {
   const isAddFormOpen = activeAddFormNodeId === node.id;
   const hasExpandedChildren = node.children.length > 0 && node.isExpanded;
@@ -68,19 +70,14 @@ export function TreeNode({
         if (lastOverlap !== 0) { lastOverlap = 0; setOverlapPx(0); }
         return;
       }
-      const totalNatural = items.reduce((sum, c) => sum + c.offsetWidth, 0);
-      const gap = parseFloat(getComputedStyle(ul).gap) || 8;
-      const totalWithGaps = totalNatural + gap * (items.length - 1);
-      const sc = ul.closest('.tree-view') as HTMLElement | null;
-      const available = sc
-        ? (() => {
-            const s = getComputedStyle(sc);
-            return sc.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
-          })()
-        : document.documentElement.clientWidth - 48;
-      const next = totalWithGaps > available
-        ? (totalWithGaps - available) / (items.length - 1)
-        : 0;
+      const allLeaves = items.every(
+        li => li.querySelector(':scope > .tree-node__children') === null
+      );
+      const avgCardWidth = items.reduce((sum, li) => {
+        const card = li.querySelector(':scope > .tree-node__self > .node-card') as HTMLElement | null;
+        return sum + (card ? card.offsetWidth : li.offsetWidth);
+      }, 0) / items.length;
+      const next = allLeaves ? avgCardWidth * 0.5 : 0;
       if (Math.abs(next - lastOverlap) > 0.5) {
         lastOverlap = next;
         setOverlapPx(next);
@@ -90,8 +87,10 @@ export function TreeNode({
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(ul);
-    window.addEventListener('resize', measure);
-    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
+    let rafId = 0;
+    const onResize = () => { cancelAnimationFrame(rafId); rafId = requestAnimationFrame(measure); };
+    window.addEventListener('resize', onResize);
+    return () => { ro.disconnect(); window.removeEventListener('resize', onResize); cancelAnimationFrame(rafId); };
   }, [hasExpandedChildren, node.children.length]);
 
   // ── Phase 2: SVG bezier paths (after overlap settles) ─────────
@@ -107,10 +106,12 @@ export function TreeNode({
       const parentCard = selfEl.querySelector(':scope > .node-card') as HTMLElement | null;
       if (!parentCard) return;
 
+      // getBoundingClientRect returns viewport-scaled coords (includes CSS zoom on
+      // ancestor ul). Divide differences by zoom to get the SVG's own layout coords.
       const cRect = container.getBoundingClientRect();
       const pRect = parentCard.getBoundingClientRect();
-      const originX = pRect.left + pRect.width / 2 - cRect.left;
-      const originY = pRect.bottom - cRect.top;
+      const originX = (pRect.left + pRect.width / 2 - cRect.left) / zoom;
+      const originY = (pRect.bottom - cRect.top) / zoom;
 
       const connectors: Connector[] = [];
       for (const li of Array.from(ul.children) as HTMLElement[]) {
@@ -118,8 +119,8 @@ export function TreeNode({
         const childCard = li.querySelector(':scope > .tree-node__self > .node-card') as HTMLElement | null;
         if (!childCard) continue;
         const r = childCard.getBoundingClientRect();
-        const toX = r.left + r.width / 2 - cRect.left;
-        const toY = r.top - cRect.top;
+        const toX = (r.left + r.width / 2 - cRect.left) / zoom;
+        const toY = (r.top - cRect.top) / zoom;
         const span = (toY - originY) * 0.48;
         connectors.push({
           childId,
@@ -136,9 +137,12 @@ export function TreeNode({
     const ro = new ResizeObserver(buildPaths);
     if (selfRef.current) ro.observe(selfRef.current);
     if (childrenListRef.current) ro.observe(childrenListRef.current);
-    window.addEventListener('resize', buildPaths);
-    return () => { ro.disconnect(); window.removeEventListener('resize', buildPaths); };
-  }, [hasExpandedChildren, node.children.length, overlapPx]);
+    // Use rAF so we measure after the browser has finished reflowing on resize.
+    let rafId = 0;
+    const onResize = () => { cancelAnimationFrame(rafId); rafId = requestAnimationFrame(buildPaths); };
+    window.addEventListener('resize', onResize);
+    return () => { ro.disconnect(); window.removeEventListener('resize', onResize); cancelAnimationFrame(rafId); };
+  }, [hasExpandedChildren, node.children.length, overlapPx, zoom]);
 
   // ── Handlers ──────────────────────────────────────────────────
   function handleToggleExpand() { dispatch({ type: 'TOGGLE_EXPAND', nodeId: node.id }); }
@@ -256,6 +260,7 @@ export function TreeNode({
                 onFocusNode={onFocusNode}
                 highlightedPath={highlightedPath}
                 visibleBranchIds={visibleBranchIds}
+                zoom={zoom}
               />
             ))}
           </ul>
