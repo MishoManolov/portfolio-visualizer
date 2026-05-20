@@ -184,19 +184,13 @@ function RebalancePlanView({
         </p>
       )}
 
-      {(plan.status === 'in-tolerance' || (plan.status === 'partial' && plan.transactions.length === 0)) && (
+      {plan.status === 'in-tolerance' && (
         <div className="rebalance-ok">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          All {plan.trackedLeafCount} tracked assets are within the {tolerance}% tolerance. No rebalancing needed.
+          All {plan.trackedLeafCount} assets are within the {tolerance}% tolerance. No rebalancing needed.
         </div>
-      )}
-
-      {plan.status === 'partial' && plan.transactions.length > 0 && (
-        <p className="rebalance-warning">
-          Some assets have no tracked value — suggestions below are based on the {plan.trackedLeafCount} assets with values and may be incomplete.
-        </p>
       )}
 
       {plan.transactions.length > 0 && (

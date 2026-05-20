@@ -8,10 +8,9 @@ export interface RebalanceTransaction {
 }
 
 export type RebalanceStatus =
-  | 'no-values'       // no leaf has currentValue set
+  | 'no-values'       // total portfolio value is zero — nothing to rebalance
   | 'in-tolerance'    // all assets within tolerance
   | 'ok'              // drifted assets found, plan generated
-  | 'partial'         // same as ok but some leaves have no value
 
 export interface RebalancePlan {
   status: RebalanceStatus;
@@ -20,12 +19,9 @@ export interface RebalancePlan {
   transactions: RebalanceTransaction[];
 }
 
-function collectTrackedLeaves(node: ComputedNode, out: ComputedNode[]) {
-  if (node.children.length === 0) {
-    if (node.hasAnyValue) out.push(node);
-    return;
-  }
-  for (const child of node.children) collectTrackedLeaves(child, out);
+function collectLeaves(node: ComputedNode, out: ComputedNode[]) {
+  if (node.children.length === 0) { out.push(node); return; }
+  for (const child of node.children) collectLeaves(child, out);
 }
 
 /**
@@ -43,15 +39,17 @@ export function computeRebalancePlan(root: ComputedNode, tolerance: number): Reb
   const totalValue = root.aggregatedValue;
 
   const leaves: ComputedNode[] = [];
-  collectTrackedLeaves(root, leaves);
+  collectLeaves(root, leaves);
 
+  // totalValue is zero only when no leaf has any currentValue set
   if (leaves.length === 0 || totalValue <= 0) {
     return { status: 'no-values', totalValue: 0, trackedLeafCount: 0, transactions: [] };
   }
 
-  const isPartial = root.isValuePartial;
   const toleranceValue = (tolerance / 100) * totalValue;
 
+  // Untracked leaves have aggregatedValue = 0, so they appear underweight and
+  // naturally receive funds in the plan — no special-casing needed.
   const items = leaves.map(leaf => ({
     name: leaf.name,
     target: (leaf.absolutePercent / 100) * totalValue,
@@ -62,12 +60,7 @@ export function computeRebalancePlan(root: ComputedNode, tolerance: number): Reb
   const anyDrifted = items.some(i => Math.abs(i.remaining) > toleranceValue);
 
   if (!anyDrifted) {
-    return {
-      status: isPartial ? 'partial' : 'in-tolerance',
-      totalValue,
-      trackedLeafCount: leaves.length,
-      transactions: [],
-    };
+    return { status: 'in-tolerance', totalValue, trackedLeafCount: leaves.length, transactions: [] };
   }
 
   const sellers = items.filter(i => i.remaining >  0.005).sort((a, b) => b.remaining - a.remaining);
@@ -97,10 +90,5 @@ export function computeRebalancePlan(root: ComputedNode, tolerance: number): Reb
     if (-buyer.remaining < 0.005) bi++;
   }
 
-  return {
-    status: isPartial ? 'partial' : 'ok',
-    totalValue,
-    trackedLeafCount: leaves.length,
-    transactions,
-  };
+  return { status: 'ok', totalValue, trackedLeafCount: leaves.length, transactions };
 }
