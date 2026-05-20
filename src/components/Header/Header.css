@@ -92,3 +92,31 @@
   background: var(--color-border);
   margin: 0 2px;
 }
+
+.header__tolerance-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 3px 10px 3px 10px;
+}
+
+.header__tolerance-input {
+  width: 40px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  outline: none;
+}
+
+.header__tolerance-unit {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}

@@ -148,6 +148,16 @@
   color: var(--color-text-secondary);
 }
 
+.side-panel__field-value--warning {
+  color: var(--color-danger);
+}
+
+.side-panel__drift-warning {
+  font-size: 11px;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
 .side-panel__percent-wrap {
   display: flex;
   align-items: center;

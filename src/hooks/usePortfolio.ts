@@ -1,27 +1,38 @@
 import { useReducer, useMemo, useEffect } from 'react';
-import type { PortfolioState, PortfolioAction, DisplayMode } from '../types';
+import type { PortfolioState, PortfolioAction, DisplayMode, PortfolioNode } from '../types';
 import { initialData } from '../data/initialData';
-import { buildComputedTree } from '../utils/calculations';
+import { buildComputedTree, annotateDrift } from '../utils/calculations';
 import { addNode, deleteNode, toggleExpand, updateNode } from '../utils/treeUtils';
 
 const STORAGE_KEY = 'portfolio-visualizer-tree';
 
-function loadFromStorage() {
+interface PersistedState {
+  root: PortfolioNode;
+  tolerance?: number;
+}
+
+function loadFromStorage(): PersistedState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // Old format: just a PortfolioNode (has 'id' at top level)
+    if (parsed && typeof parsed === 'object' && 'id' in parsed) {
+      return { root: parsed };
+    }
+    return parsed as PersistedState;
   } catch {
-    // fall through to initialData
+    return null;
   }
-  return null;
 }
 
 function getInitialState(): PortfolioState {
   const saved = loadFromStorage();
   return {
-    root: saved ?? initialData,
+    root: saved?.root ?? initialData,
     displayMode: 'relative' as DisplayMode,
     activeAddFormNodeId: null,
+    tolerance: saved?.tolerance ?? 5,
   };
 }
 
@@ -53,6 +64,8 @@ function reducer(state: PortfolioState, action: PortfolioAction): PortfolioState
       };
     case 'UPDATE_NODE':
       return { ...state, root: updateNode(state.root, action.nodeId, action.updates) };
+    case 'SET_TOLERANCE':
+      return { ...state, tolerance: action.tolerance };
     default:
       return state;
   }
@@ -61,15 +74,18 @@ function reducer(state: PortfolioState, action: PortfolioAction): PortfolioState
 export function usePortfolio() {
   const [state, dispatch] = useReducer(reducer, undefined, getInitialState);
 
-  const computedRoot = useMemo(() => buildComputedTree(state.root), [state.root]);
+  const computedRoot = useMemo(() => {
+    const tree = buildComputedTree(state.root);
+    return annotateDrift(tree, tree.aggregatedValue, state.tolerance);
+  }, [state.root, state.tolerance]);
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.root));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ root: state.root, tolerance: state.tolerance }));
     } catch {
       // quota exceeded or private browsing — ignore
     }
-  }, [state.root]);
+  }, [state.root, state.tolerance]);
 
   return { state, dispatch, computedRoot };
 }

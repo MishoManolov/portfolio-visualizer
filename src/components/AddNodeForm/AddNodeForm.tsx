@@ -13,11 +13,12 @@ interface AddNodeFormProps {
 }
 
 export function AddNodeForm({ existingChildrenSum, onSubmit, onCancel }: AddNodeFormProps) {
-  const [name, setName] = useState('');
-  const [percentStr, setPercentStr] = useState('');
-  const [errors, setErrors] = useState<{ name?: string; percent?: string }>({});
-
   const remaining = Math.max(0, 100 - existingChildrenSum);
+  const [name, setName] = useState('');
+  const [percentStr, setPercentStr] = useState(
+    remaining > 0 ? String(remaining % 1 === 0 ? remaining : parseFloat(remaining.toFixed(2))) : ''
+  );
+  const [errors, setErrors] = useState<{ name?: string; percent?: string }>({});
   const percentNum = parseFloat(normalizeDecimal(percentStr));
   const wouldExceed = !isNaN(percentNum) && existingChildrenSum + percentNum > 100.001;
 
@@ -71,7 +72,7 @@ export function AddNodeForm({ existingChildrenSum, onSubmit, onCancel }: AddNode
               type="text"
               inputMode="decimal"
               className={`add-node-form__input add-node-form__input--percent ${errors.percent ? 'add-node-form__input--error' : ''}`}
-              placeholder={remaining > 0 ? `${remaining.toFixed(remaining % 1 === 0 ? 0 : 2)}` : '0'}
+              placeholder="0"
               value={percentStr}
               onChange={(e) => { setPercentStr(e.target.value); setErrors((prev) => ({ ...prev, percent: undefined })); }}
             />

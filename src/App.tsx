@@ -29,6 +29,15 @@ function findNode(root: ComputedNode, id: string): ComputedNode | null {
   return null;
 }
 
+function findParent(root: ComputedNode, id: string): ComputedNode | null {
+  for (const child of root.children) {
+    if (child.id === id) return root;
+    const found = findParent(child, id);
+    if (found) return found;
+  }
+  return null;
+}
+
 function App() {
   const { state, dispatch, computedRoot } = usePortfolio();
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
@@ -43,6 +52,11 @@ function App() {
     [focusedNodeId, computedRoot],
   );
 
+  const parentNode = useMemo(
+    () => focusedNodeId ? findParent(computedRoot, focusedNodeId) : null,
+    [focusedNodeId, computedRoot],
+  );
+
   function handleToggleMode() {
     dispatch({
       type: 'SET_DISPLAY_MODE',
@@ -50,11 +64,17 @@ function App() {
     });
   }
 
+  function handleSetTolerance(t: number) {
+    dispatch({ type: 'SET_TOLERANCE', tolerance: t });
+  }
+
   return (
     <>
       <Header
         displayMode={state.displayMode}
         onToggleMode={handleToggleMode}
+        tolerance={state.tolerance}
+        onSetTolerance={handleSetTolerance}
       />
       <main>
         <TreeView
@@ -69,6 +89,8 @@ function App() {
         {focusedNode && (
           <SidePanel
             node={focusedNode}
+            parentNode={parentNode}
+            displayMode={state.displayMode}
             dispatch={dispatch}
             onClose={() => setFocusedNodeId(null)}
             onNavigate={setFocusedNodeId}

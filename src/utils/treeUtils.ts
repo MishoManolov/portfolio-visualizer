@@ -36,7 +36,7 @@ export function toggleExpand(root: PortfolioNode, targetId: string): PortfolioNo
 export function updateNode(
   root: PortfolioNode,
   targetId: string,
-  updates: { name?: string; description?: string; relativePercent?: number; metrics?: Partial<{ expectedReturn?: number; volatility?: number }> },
+  updates: { name?: string; description?: string; relativePercent?: number; currentValue?: number; metrics?: Partial<{ expectedReturn?: number; volatility?: number }> },
 ): PortfolioNode {
   if (root.id === targetId) {
     const { metrics, ...rest } = updates;

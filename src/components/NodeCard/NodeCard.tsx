@@ -1,6 +1,6 @@
 import type { ComputedNode, DisplayMode } from '../../types';
 import { PercentageBar } from '../PercentageBar/PercentageBar';
-import { formatPercent } from '../../utils/calculations';
+import { formatPercent, formatValue } from '../../utils/calculations';
 import './NodeCard.css';
 
 interface NodeCardProps {
@@ -27,8 +27,11 @@ export function NodeCard({
   const hasChildren = node.children.length > 0;
   const isInvalid = !node.isValid && hasChildren;
   const activePercent = displayMode === 'relative' ? node.relativePercent : node.absolutePercent;
-  const otherPercent = displayMode === 'relative' ? node.absolutePercent : node.relativePercent;
-  const otherLabel = displayMode === 'relative' ? 'abs' : 'rel';
+  const isDrifted = displayMode === 'relative' ? node.isRelativeDrifted : node.isAbsoluteDrifted;
+  const actualPercent = displayMode === 'relative'
+    ? (node.actualRelativePercent ?? node.actualAbsolutePercent)
+    : node.actualAbsolutePercent;
+  const mainPercent = node.valueIsTracked && actualPercent !== null ? actualPercent : activePercent;
 
   function handleCardClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -75,14 +78,29 @@ export function NodeCard({
           <div className="node-card__top">
             <span className="node-card__name">{node.name}</span>
             <div className="node-card__percent-group">
-              <span className={`node-card__percent ${isInvalid ? 'node-card__percent--danger' : ''}`}>
-                {formatPercent(activePercent)}
+              <span className={`node-card__percent ${isInvalid ? 'node-card__percent--danger' : ''} ${isDrifted ? 'node-card__percent--drifted' : ''}`}>
+                {formatPercent(mainPercent)}
               </span>
-              <span className="node-card__percent-secondary">
-                {otherLabel}: {formatPercent(otherPercent)}
-              </span>
+              {isDrifted && (
+                <span className="node-card__drift-icon" title="Allocation drifted from target">
+                  <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+                    <path d="M8 1.5a.5.5 0 0 1 .437.257l6 10.5A.5.5 0 0 1 14 13H2a.5.5 0 0 1-.437-.743l6-10.5A.5.5 0 0 1 8 1.5zM8 5.5a.5.5 0 0 0-.5.5v2.5a.5.5 0 0 0 1 0V6a.5.5 0 0 0-.5-.5zm0 5.5a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+                  </svg>
+                </span>
+              )}
             </div>
           </div>
+          {node.valueIsTracked && (
+            <div className="node-card__target-row">
+              target: {formatPercent(activePercent)}
+            </div>
+          )}
+          {node.valueIsTracked && (
+            <div className="node-card__value-row">
+              value: {formatValue(node.aggregatedValue)}
+              {node.isValuePartial && <span className="node-card__value-partial">*</span>}
+            </div>
+          )}
           <PercentageBar
             relativePercent={node.relativePercent}
             absolutePercent={node.absolutePercent}
@@ -92,7 +110,7 @@ export function NodeCard({
           />
           {isInvalid && (
             <div className="node-card__validation-error">
-              Children sum: {formatPercent(node.childrenSum)} (must be 100%)
+              Children sum: {formatPercent(node.childrenSum)}
             </div>
           )}
         </div>

@@ -3,13 +3,15 @@ import { useState, useEffect } from 'react';
 function normalizeDecimal(s: string): string {
   return s.replace(/,/g, '.');
 }
-import type { ComputedNode, PortfolioAction } from '../../types';
+import type { ComputedNode, PortfolioAction, DisplayMode } from '../../types';
 import { AddNodeForm } from '../AddNodeForm/AddNodeForm';
-import { formatPercent } from '../../utils/calculations';
+import { formatPercent, formatValue } from '../../utils/calculations';
 import './SidePanel.css';
 
 interface SidePanelProps {
   node: ComputedNode;
+  parentNode: ComputedNode | null;
+  displayMode: DisplayMode;
   dispatch: React.Dispatch<PortfolioAction>;
   onClose: () => void;
   onNavigate: (id: string) => void;
@@ -61,7 +63,7 @@ function MetricRow({ label, value, unit, partial }: {
   );
 }
 
-export function SidePanel({ node, dispatch, onClose, onNavigate }: SidePanelProps) {
+export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, onNavigate }: SidePanelProps) {
   const [localName, setLocalName] = useState(node.name);
   const [localDescription, setLocalDescription] = useState(node.description ?? '');
   const [localPercent, setLocalPercent] = useState(String(node.relativePercent));
@@ -76,6 +78,9 @@ export function SidePanel({ node, dispatch, onClose, onNavigate }: SidePanelProp
   const [localDrawdown, setLocalDrawdown] = useState(
     node.metrics?.maxDrawdown != null ? String(node.metrics.maxDrawdown) : ''
   );
+  const [localValue, setLocalValue] = useState(
+    node.currentValue != null ? String(node.currentValue) : ''
+  );
 
   useEffect(() => {
     setLocalName(node.name);
@@ -86,6 +91,7 @@ export function SidePanel({ node, dispatch, onClose, onNavigate }: SidePanelProp
     setLocalReturn(node.metrics?.expectedReturn != null ? String(node.metrics.expectedReturn) : '');
     setLocalVolatility(node.metrics?.volatility != null ? String(node.metrics.volatility) : '');
     setLocalDrawdown(node.metrics?.maxDrawdown != null ? String(node.metrics.maxDrawdown) : '');
+    setLocalValue(node.currentValue != null ? String(node.currentValue) : '');
   }, [node.id]);
 
   useEffect(() => {
@@ -115,6 +121,16 @@ export function SidePanel({ node, dispatch, onClose, onNavigate }: SidePanelProp
     }
     setPercentError(null);
     if (val !== node.relativePercent) dispatch({ type: 'UPDATE_NODE', nodeId: node.id, updates: { relativePercent: val } });
+  }
+
+  function handleValueBlur() {
+    if (localValue.trim() === '') {
+      if (node.currentValue != null) dispatch({ type: 'UPDATE_NODE', nodeId: node.id, updates: { currentValue: undefined } });
+      return;
+    }
+    const val = parseFloat(normalizeDecimal(localValue));
+    if (isNaN(val) || val < 0) { setLocalValue(node.currentValue != null ? String(node.currentValue) : ''); return; }
+    if (val !== node.currentValue) dispatch({ type: 'UPDATE_NODE', nodeId: node.id, updates: { currentValue: val } });
   }
 
   function saveMetric(field: 'expectedReturn' | 'volatility' | 'maxDrawdown', raw: string, current: number | undefined) {
@@ -219,6 +235,64 @@ export function SidePanel({ node, dispatch, onClose, onNavigate }: SidePanelProp
               Level {node.depth}
             </span>
           </div>
+          {(() => {
+            const actualPercent = displayMode === 'relative' ? node.actualRelativePercent : node.actualAbsolutePercent;
+            const drift = displayMode === 'relative' ? node.relativeDrift : node.absoluteDrift;
+            const isDrifted = displayMode === 'relative' ? node.isRelativeDrifted : node.isAbsoluteDrifted;
+            if (actualPercent === null) return null;
+            return (
+              <>
+                <div className="side-panel__field">
+                  <span className="side-panel__field-label">Actual</span>
+                  <span className="side-panel__field-value">{actualPercent.toFixed(2)}%</span>
+                </div>
+                <div className="side-panel__field">
+                  <span className="side-panel__field-label">Drift</span>
+                  <span className={`side-panel__field-value${isDrifted ? ' side-panel__field-value--warning' : ''}`}>
+                    {drift !== null ? `${drift.toFixed(2)}%` : '—'}
+                    {isDrifted && <span className="side-panel__drift-warning"> — exceeds tolerance</span>}
+                  </span>
+                </div>
+              </>
+            );
+          })()}
+        </section>
+
+        {/* ── Value ── */}
+        <section className="side-panel__section">
+          <h3 className="side-panel__section-title">
+            {hasChildren ? 'Total Value' : 'Current Value'}
+          </h3>
+          {hasChildren ? (
+            <div className="side-panel__field">
+              <span className="side-panel__field-label">Value</span>
+              <span className={`side-panel__field-value${!node.valueIsTracked ? ' side-panel__field-value--secondary' : ''}`}>
+                {!node.valueIsTracked ? '—' : formatValue(node.aggregatedValue)}
+                {node.valueIsTracked && node.isValuePartial && (
+                  <span className="side-panel__partial-mark" title="Some leaf nodes have no value set (counted as 0)">*</span>
+                )}
+              </span>
+            </div>
+          ) : (
+            <div className="side-panel__field">
+              <span className="side-panel__field-label">Value</span>
+              <div className="side-panel__metric-input-wrap">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  className="side-panel__metric-input"
+                  value={localValue}
+                  placeholder="—"
+                  onChange={e => setLocalValue(e.target.value)}
+                  onBlur={handleValueBlur}
+                  onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                />
+              </div>
+            </div>
+          )}
+          {node.isValuePartial && hasChildren && (
+            <p className="side-panel__metrics-note">* Partial — some leaf nodes have no value set.</p>
+          )}
         </section>
 
         {isInvalid && (
@@ -228,7 +302,7 @@ export function SidePanel({ node, dispatch, onClose, onNavigate }: SidePanelProp
               <line x1="8" y1="7" x2="8" y2="10" />
               <circle cx="8" cy="12" r="0.6" fill="currentColor" stroke="none" />
             </svg>
-            Children sum to {formatPercent(node.childrenSum)} — must equal 100%
+            Children sum to {formatPercent(node.childrenSum)}
           </div>
         )}
 
@@ -283,6 +357,29 @@ export function SidePanel({ node, dispatch, onClose, onNavigate }: SidePanelProp
             rows={3}
           />
         </section>
+
+        {/* ── Parent ── */}
+        {parentNode && (
+          <section className="side-panel__section">
+            <h3 className="side-panel__section-title">Parent</h3>
+            <div className="side-panel__children-list">
+              <button
+                className="side-panel__child-item"
+                onClick={() => onNavigate(parentNode.id)}
+              >
+                <span className="side-panel__child-name">{parentNode.name}</span>
+                <div className="side-panel__child-meta">
+                  {parentNode.aggregatedMetrics.expectedReturn !== null && (
+                    <span className="side-panel__child-metric">
+                      {parentNode.aggregatedMetrics.expectedReturn.toFixed(1)}%
+                    </span>
+                  )}
+                  <span className="side-panel__child-percent">{formatPercent(parentNode.absolutePercent)}</span>
+                </div>
+              </button>
+            </div>
+          </section>
+        )}
 
         {/* ── Children list ── */}
         {hasChildren && (

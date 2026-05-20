@@ -130,8 +130,11 @@ export function TreeNode({
     };
 
     buildPaths();
+    const ro = new ResizeObserver(buildPaths);
+    if (selfRef.current) ro.observe(selfRef.current);
+    if (childrenListRef.current) ro.observe(childrenListRef.current);
     window.addEventListener('resize', buildPaths);
-    return () => window.removeEventListener('resize', buildPaths);
+    return () => { ro.disconnect(); window.removeEventListener('resize', buildPaths); };
   }, [hasExpandedChildren, node.children.length, overlapPx]);
 
   // ── Handlers ──────────────────────────────────────────────────

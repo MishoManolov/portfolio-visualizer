@@ -49,11 +49,36 @@ export function buildComputedTree(
     buildComputedTree(child, absolutePercent, depth + 1)
   );
 
+  let aggregatedValue: number;
+  let hasAnyValue: boolean;
+  let isValuePartial: boolean;
+
+  if (computedChildren.length === 0) {
+    aggregatedValue = node.currentValue ?? 0;
+    hasAnyValue = node.currentValue !== undefined;
+    isValuePartial = node.currentValue === undefined;
+  } else {
+    aggregatedValue = computedChildren.reduce((sum, c) => sum + c.aggregatedValue, 0);
+    hasAnyValue = computedChildren.some(c => c.hasAnyValue);
+    isValuePartial = computedChildren.some(c => c.isValuePartial);
+  }
+
   return {
     id: node.id,
     name: node.name,
     description: node.description,
     metrics: node.metrics,
+    currentValue: node.currentValue,
+    aggregatedValue,
+    hasAnyValue,
+    isValuePartial,
+    valueIsTracked: false,
+    actualAbsolutePercent: null,
+    actualRelativePercent: null,
+    absoluteDrift: null,
+    relativeDrift: null,
+    isAbsoluteDrifted: false,
+    isRelativeDrifted: false,
     aggregatedMetrics: buildAggregatedMetrics(node, computedChildren),
     relativePercent: node.relativePercent,
     absolutePercent,
@@ -65,6 +90,50 @@ export function buildComputedTree(
   };
 }
 
+export function annotateDrift(
+  node: ComputedNode,
+  totalValue: number,
+  tolerance: number,
+  parentAggregatedValue: number = 0,
+): ComputedNode {
+  const hasValues = totalValue > 0;
+
+  const actualAbsolutePercent = hasValues
+    ? (node.aggregatedValue / totalValue) * 100
+    : null;
+
+  const actualRelativePercent = parentAggregatedValue > 0
+    ? (node.aggregatedValue / parentAggregatedValue) * 100
+    : (node.depth === 0 && hasValues ? 100 : null);
+
+  const absoluteDrift = actualAbsolutePercent !== null
+    ? Math.abs(actualAbsolutePercent - node.absolutePercent)
+    : null;
+  const relativeDrift = actualRelativePercent !== null
+    ? Math.abs(actualRelativePercent - node.relativePercent)
+    : null;
+  const isAbsoluteDrifted = absoluteDrift !== null && absoluteDrift > tolerance;
+  const isRelativeDrifted = relativeDrift !== null && relativeDrift > tolerance;
+
+  return {
+    ...node,
+    valueIsTracked: hasValues,
+    actualAbsolutePercent,
+    actualRelativePercent,
+    absoluteDrift,
+    relativeDrift,
+    isAbsoluteDrifted,
+    isRelativeDrifted,
+    children: node.children.map(c =>
+      annotateDrift(c, totalValue, tolerance, node.aggregatedValue)
+    ),
+  };
+}
+
 export function formatPercent(value: number): string {
   return value.toFixed(2).replace(/\.?0+$/, '') + '%';
+}
+
+export function formatValue(value: number): string {
+  return value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
