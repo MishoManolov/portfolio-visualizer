@@ -69,4 +69,5 @@ export type PortfolioAction =
   | { type: 'SET_TOLERANCE'; tolerance: number }
   | { type: 'SET_CASH'; value: number }
   | { type: 'IMPORT_PORTFOLIO'; root: PortfolioNode; tolerance?: number; cash?: number }
-  | { type: 'CREATE_PORTFOLIO'; name: string };
+  | { type: 'CREATE_PORTFOLIO'; name: string }
+  | { type: 'RESET_PORTFOLIO' };

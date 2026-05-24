@@ -348,6 +348,26 @@ export function SettingsDrawer({
             />
           </section>
 
+          {/* ── Reset ─────────────────────────────────────────────── */}
+          <section className="settings-section">
+            <div className="settings-section__label">Canvas</div>
+            <button
+              className="settings-reset-btn"
+              onClick={() => {
+                if (window.confirm('Reset canvas? This will clear all data and return to the welcome screen.')) {
+                  dispatch({ type: 'RESET_PORTFOLIO' });
+                  setIsOpen(false);
+                }
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M3 3v5h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Reset canvas
+            </button>
+          </section>
+
         </div>
       </div>
     </>
