@@ -2,6 +2,7 @@ import { useReducer, useMemo, useEffect } from 'react';
 import type { PortfolioState, PortfolioAction, DisplayMode, PortfolioNode } from '../types';
 import { buildComputedTree, annotateDrift } from '../utils/calculations';
 import { addNode, deleteNode, toggleExpand, updateNode } from '../utils/treeUtils';
+import { savePortfolioToCloud, deletePortfolioFromCloud } from '../api/portfolioApi';
 
 const STORAGE_KEY = 'portfolio-visualizer-tree';
 
@@ -136,6 +137,7 @@ function reducer(state: PortfolioState, action: PortfolioAction): PortfolioState
         isInitialized: true,
       };
     case 'RESET_PORTFOLIO':
+      deletePortfolioFromCloud(state.root.id);
       localStorage.removeItem(STORAGE_KEY);
       return {
         root: BLANK_ROOT,
@@ -163,15 +165,13 @@ export function usePortfolio() {
     // portfolio — otherwise a first visit would persist the blank placeholder
     // and the welcome screen would never appear again.
     if (!state.isInitialized) return;
+    const payload = { root: state.root, tolerance: state.tolerance, cash: state.cash };
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        root: state.root,
-        tolerance: state.tolerance,
-        cash: state.cash,
-      }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch {
       // quota exceeded or private browsing — ignore
     }
+    savePortfolioToCloud(state.root.id, payload);
   }, [state.root, state.tolerance, state.cash, state.isInitialized]);
 
   return { state, dispatch, computedRoot };
