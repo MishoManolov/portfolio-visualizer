@@ -58,6 +58,20 @@ main {
   flex: 1;
   display: flex;
   overflow: hidden;
+  position: relative;
+}
+
+.portfolio-label {
+  position: fixed;
+  bottom: 16px;
+  right: 80px;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  pointer-events: none;
+  user-select: none;
+  z-index: 200;
+  white-space: nowrap;
 }
 
 button {

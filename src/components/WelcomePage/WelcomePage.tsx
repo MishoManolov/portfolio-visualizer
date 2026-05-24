@@ -77,58 +77,67 @@ export function WelcomePage({ dispatch }: WelcomePageProps) {
 
   return (
     <div className="welcome">
-      <div className="welcome__card">
+      <div className="welcome__content">
         <div className="welcome__brand">
+          <svg className="welcome__logo" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+            <circle cx="17" cy="6" r="5" fill="var(--color-primary)" />
+            <circle cx="6" cy="27" r="4.5" fill="var(--color-primary)" opacity="0.55" />
+            <circle cx="28" cy="27" r="4.5" fill="var(--color-primary)" opacity="0.55" />
+            <line x1="17" y1="11" x2="17" y2="19" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" />
+            <line x1="17" y1="19" x2="6" y2="23" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" />
+            <line x1="17" y1="19" x2="28" y2="23" stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round" />
+          </svg>
           <h1 className="welcome__title">Portfolio Visualizer</h1>
-          <p className="welcome__subtitle">Interactive allocation tree</p>
         </div>
+
+        <p className="welcome__desc">
+          Visualize your investments as a hierarchical allocation tree. Track drift from your target percentages and get rebalancing suggestions.
+        </p>
 
         {mode === 'idle' && (
           <div className="welcome__actions">
-            <button className="welcome__btn welcome__btn--primary" onClick={() => setMode('creating')}>
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
-                <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <button className="welcome__action" onClick={() => setMode('creating')}>
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.6" />
+                <line x1="10" y1="6.5" x2="10" y2="13.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                <line x1="6.5" y1="10" x2="13.5" y2="10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
               </svg>
-              Create new portfolio
+              New portfolio
             </button>
-            <button className="welcome__btn welcome__btn--secondary" onClick={handleImportClick}>
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M12 21V8M7 13l5-5 5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M4 5h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <button className="welcome__action" onClick={handleImportClick}>
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M10 13.5V4.5M6.5 8l3.5-4 3.5 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M3.5 16h13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
               </svg>
-              Import portfolio
+              Import from file
             </button>
-            {importError && <p className="welcome__error">{importError}</p>}
           </div>
         )}
+        {mode === 'idle' && importError && <p className="welcome__error">{importError}</p>}
 
         {mode === 'creating' && (
           <form className="welcome__create-form" onSubmit={handleCreate}>
-            <label className="welcome__field-label" htmlFor="portfolio-name">
-              Portfolio name
-            </label>
-            <div className="welcome__field-row">
-              <input
-                id="portfolio-name"
-                className="welcome__input"
-                type="text"
-                placeholder={FALLBACK_NAME}
-                value={name}
-                onChange={e => setName(e.target.value)}
-                autoFocus
-                maxLength={80}
-              />
-              <button type="submit" className="welcome__btn welcome__btn--primary welcome__btn--compact">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <input
+              id="portfolio-name"
+              className="welcome__input"
+              type="text"
+              placeholder={FALLBACK_NAME}
+              value={name}
+              onChange={e => setName(e.target.value)}
+              autoFocus
+              maxLength={80}
+            />
+            <div className="welcome__form-row">
+              <button type="submit" className="welcome__action welcome__action--submit">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M4 10h12M11 5.5l4.5 4.5-4.5 4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
+                Create
+              </button>
+              <button type="button" className="welcome__cancel" onClick={() => { setMode('idle'); setName(''); }}>
+                Cancel
               </button>
             </div>
-            <button type="button" className="welcome__cancel" onClick={() => { setMode('idle'); setName(''); }}>
-              Cancel
-            </button>
           </form>
         )}
       </div>

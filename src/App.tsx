@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { usePortfolio } from './hooks/usePortfolio';
-import { Header } from './components/Header/Header';
 import { TreeView } from './components/TreeView/TreeView';
+import { SettingsDrawer } from './components/SettingsDrawer/SettingsDrawer';
 import { SidePanel } from './components/SidePanel/SidePanel';
 import { WelcomePage } from './components/WelcomePage/WelcomePage';
 import type { ComputedNode } from './types';
@@ -98,18 +98,18 @@ function App() {
 
   return (
     <>
-      <Header
-        displayMode={state.displayMode}
-        onToggleMode={handleToggleMode}
-        tolerance={state.tolerance}
-        onSetTolerance={handleSetTolerance}
-        cash={state.cash}
-        onSetCash={handleSetCash}
-        computedRoot={computedRoot}
-        portfolioRoot={state.root}
-        dispatch={dispatch}
-      />
       <main>
+        <SettingsDrawer
+          displayMode={state.displayMode}
+          onToggleMode={handleToggleMode}
+          tolerance={state.tolerance}
+          onSetTolerance={handleSetTolerance}
+          cash={state.cash}
+          onSetCash={handleSetCash}
+          computedRoot={computedRoot}
+          portfolioRoot={state.root}
+          dispatch={dispatch}
+        />
         <TreeView
           root={computedRoot}
           displayMode={state.displayMode}
@@ -149,6 +149,7 @@ function App() {
             onNavigate={setFocusedNodeId}
           />
         )}
+        <span className="portfolio-label">Portfolio Visualizer</span>
       </main>
     </>
   );

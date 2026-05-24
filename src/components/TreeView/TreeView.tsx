@@ -50,9 +50,18 @@ export function TreeView({
       const th = rootLi.offsetHeight + 80;
       const fitZoom = clampZoom(Math.min(cw / tw, ch / th, 1));
       onZoom(fitZoom);
+      // Measure the card's actual horizontal center at pan=(0,0) zoom=1 —
+      // needed because ul.tree-view__root has min-width:100vw and centers
+      // the card via align-items:center, so offsetWidth alone is wrong.
+      const cardEl = container.querySelector('.node-card') as HTMLElement | null;
+      const containerRect = container.getBoundingClientRect();
+      const cardRect = cardEl?.getBoundingClientRect();
+      const cardCenterX = cardRect
+        ? cardRect.left + cardRect.width / 2 - containerRect.left
+        : cw / 2;
       setPan({
-        x: (cw - tw * fitZoom) / 2,
-        y: (ch - th * fitZoom) / 2,
+        x: cw / 2 - cardCenterX * fitZoom,
+        y: ch / 3 - (32 + rootLi.offsetHeight / 2) * fitZoom,
       });
     });
     return () => cancelAnimationFrame(rafId);

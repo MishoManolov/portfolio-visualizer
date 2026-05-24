@@ -1,30 +1,7 @@
-import { useReducer, useMemo, useEffect } from 'react';
+import { useReducer, useMemo } from 'react';
 import type { PortfolioState, PortfolioAction, DisplayMode, PortfolioNode } from '../types';
 import { buildComputedTree, annotateDrift } from '../utils/calculations';
 import { addNode, deleteNode, toggleExpand, updateNode } from '../utils/treeUtils';
-
-const STORAGE_KEY = 'portfolio-visualizer-tree';
-
-interface PersistedState {
-  root: PortfolioNode;
-  tolerance?: number;
-  cash?: number;
-}
-
-function loadFromStorage(): PersistedState | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    // Old format: just a PortfolioNode (has 'id' at top level)
-    if (parsed && typeof parsed === 'object' && 'id' in parsed) {
-      return { root: parsed };
-    }
-    return parsed as PersistedState;
-  } catch {
-    return null;
-  }
-}
 
 // Placeholder root used only when isInitialized is false — never displayed.
 const BLANK_ROOT: PortfolioNode = {
@@ -36,14 +13,13 @@ const BLANK_ROOT: PortfolioNode = {
 };
 
 function getInitialState(): PortfolioState {
-  const saved = loadFromStorage();
   return {
-    root: saved?.root ?? BLANK_ROOT,
+    root: BLANK_ROOT,
     displayMode: 'relative' as DisplayMode,
     activeAddFormNodeId: null,
-    tolerance: saved?.tolerance ?? 5,
-    cash: saved?.cash ?? 0,
-    isInitialized: saved !== null,
+    tolerance: 5,
+    cash: 0,
+    isInitialized: false,
   };
 }
 
@@ -147,22 +123,6 @@ export function usePortfolio() {
     const tree = buildComputedTree(state.root);
     return annotateDrift(tree, tree.aggregatedValue, state.tolerance);
   }, [state.root, state.tolerance]);
-
-  useEffect(() => {
-    // Don't write to storage until the user has actually created/imported a
-    // portfolio — otherwise a first visit would persist the blank placeholder
-    // and the welcome screen would never appear again.
-    if (!state.isInitialized) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        root: state.root,
-        tolerance: state.tolerance,
-        cash: state.cash,
-      }));
-    } catch {
-      // quota exceeded or private browsing — ignore
-    }
-  }, [state.root, state.tolerance, state.cash, state.isInitialized]);
 
   return { state, dispatch, computedRoot };
 }
