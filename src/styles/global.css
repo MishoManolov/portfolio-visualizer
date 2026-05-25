@@ -61,6 +61,52 @@ main {
   position: relative;
 }
 
+.share-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 198;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.share-btn:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-lg);
+}
+
+.share-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.shared-badge {
+  position: fixed;
+  top: 20px;
+  right: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  z-index: 198;
+  pointer-events: none;
+}
+
 .portfolio-label {
   position: fixed;
   bottom: 16px;

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
+import type { ComputedNode, PortfolioAction, DisplayMode } from '../../types';
+import { AddNodeForm } from '../AddNodeForm/AddNodeForm';
+import { formatPercent, formatValue } from '../../utils/calculations';
+import { useReadOnly } from '../../context/ReadOnlyContext';
+import './SidePanel.css';
 
 function normalizeDecimal(s: string): string {
   return s.replace(/,/g, '.');
 }
-import type { ComputedNode, PortfolioAction, DisplayMode } from '../../types';
-import { AddNodeForm } from '../AddNodeForm/AddNodeForm';
-import { formatPercent, formatValue } from '../../utils/calculations';
-import './SidePanel.css';
 
 interface SidePanelProps {
   node: ComputedNode;
@@ -40,6 +41,7 @@ function MetricInput({
         onChange={e => onChange(e.target.value)}
         onBlur={onBlur}
         onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+        readOnly={useReadOnly()}
       />
     </div>
   );
@@ -63,6 +65,7 @@ function MetricRow({ label, value, unit, partial }: {
 }
 
 export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, onNavigate }: SidePanelProps) {
+  const isReadOnly = useReadOnly();
   const [localName, setLocalName] = useState(node.name);
   const [localDescription, setLocalDescription] = useState(node.description ?? '');
   const [localPercent, setLocalPercent] = useState(String(node.relativePercent));
@@ -189,6 +192,7 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
           onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
           maxLength={50}
           aria-label="Node name"
+          readOnly={isReadOnly}
         />
         <button className="side-panel__close" onClick={onClose} aria-label="Close panel">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -206,7 +210,7 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
             <span className="side-panel__field-label">
               Relative <span className="side-panel__field-unit">(%)</span>
             </span>
-            {isRoot ? (
+            {isRoot || isReadOnly ? (
               <span className="side-panel__field-value">{formatPercent(node.relativePercent)}</span>
             ) : (
               <input
@@ -283,6 +287,7 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
                 onChange={e => setLocalValue(e.target.value)}
                 onBlur={handleValueBlur}
                 onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                readOnly={isReadOnly}
               />
             </div>
           )}
@@ -351,6 +356,7 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
             onBlur={handleDescriptionBlur}
             placeholder="Add notes about this allocation…"
             rows={3}
+            readOnly={isReadOnly}
           />
         </section>
 
@@ -396,7 +402,7 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
         )}
 
         {/* ── Add child ── */}
-        <section className="side-panel__section">
+        {!isReadOnly && <section className="side-panel__section">
           {showAddChild ? (
             <AddNodeForm
               parentId={node.id}
@@ -413,7 +419,7 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
               Add child allocation
             </button>
           )}
-        </section>
+        </section>}
 
         {/* ── Actions ── */}
         <section className="side-panel__section side-panel__section--actions">
@@ -430,7 +436,7 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
               {node.isExpanded ? 'Collapse' : 'Expand'}
             </button>
           )}
-          {!isRoot && (
+          {!isRoot && !isReadOnly && (
             <button className="side-panel__action-btn side-panel__action-btn--danger" onClick={handleDelete}>
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="3 5 13 5" />

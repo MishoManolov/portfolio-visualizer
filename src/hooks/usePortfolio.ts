@@ -45,6 +45,8 @@ function getInitialState(): PortfolioState {
     tolerance: saved?.tolerance ?? 5,
     cash: saved?.cash ?? 0,
     isInitialized: saved !== null,
+    isSharedView: false,
+    sharedViewMode: null,
   };
 }
 
@@ -136,6 +138,17 @@ function reducer(state: PortfolioState, action: PortfolioAction): PortfolioState
         activeAddFormNodeId: null,
         isInitialized: true,
       };
+    case 'LOAD_SHARED_PORTFOLIO':
+      return {
+        ...state,
+        root: action.root,
+        tolerance: action.tolerance ?? 5,
+        cash: action.cash ?? 0,
+        activeAddFormNodeId: null,
+        isInitialized: true,
+        isSharedView: true,
+        sharedViewMode: action.shareMode,
+      };
     case 'RESET_PORTFOLIO':
       deletePortfolioFromCloud(state.root.id);
       localStorage.removeItem(STORAGE_KEY);
@@ -146,6 +159,8 @@ function reducer(state: PortfolioState, action: PortfolioAction): PortfolioState
         tolerance: 5,
         cash: 0,
         isInitialized: false,
+        isSharedView: false,
+        sharedViewMode: null,
       };
     default:
       return state;
@@ -161,18 +176,17 @@ export function usePortfolio() {
   }, [state.root, state.tolerance]);
 
   useEffect(() => {
-    // Don't write to storage until the user has actually created/imported a
-    // portfolio — otherwise a first visit would persist the blank placeholder
-    // and the welcome screen would never appear again.
     if (!state.isInitialized) return;
     const payload = { root: state.root, tolerance: state.tolerance, cash: state.cash };
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    } catch {
-      // quota exceeded or private browsing — ignore
+    if (!state.isSharedView) {
+      // Normal portfolio: persist locally and to cloud
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch { /* ignore */ }
+      savePortfolioToCloud(state.root.id, payload);
+    } else if (state.sharedViewMode === 'edit') {
+      // Shared editable view: sync changes to cloud only, leave visitor's localStorage untouched
+      savePortfolioToCloud(state.root.id, payload);
     }
-    savePortfolioToCloud(state.root.id, payload);
-  }, [state.root, state.tolerance, state.cash, state.isInitialized]);
+  }, [state.root, state.tolerance, state.cash, state.isInitialized, state.isSharedView, state.sharedViewMode]);
 
   return { state, dispatch, computedRoot };
 }

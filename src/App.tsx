@@ -1,9 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { usePortfolio } from './hooks/usePortfolio';
 import { TreeView } from './components/TreeView/TreeView';
 import { SettingsDrawer } from './components/SettingsDrawer/SettingsDrawer';
 import { SidePanel } from './components/SidePanel/SidePanel';
 import { WelcomePage } from './components/WelcomePage/WelcomePage';
+import { ShareModal } from './components/ShareModal/ShareModal';
+import { ReadOnlyContext } from './context/ReadOnlyContext';
+import { loadPortfolioFromCloud } from './api/portfolioApi';
 import type { ComputedNode } from './types';
 
 function getPathToNode(root: ComputedNode, targetId: string): Set<string> {
@@ -55,6 +58,29 @@ function App() {
   const { state, dispatch, computedRoot } = usePortfolio();
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+
+  // Detect shared portfolio link on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shareId = params.get('share');
+    const mode = params.get('mode');
+    if (!shareId || (mode !== 'edit' && mode !== 'view')) return;
+    loadPortfolioFromCloud(shareId).then(data => {
+      if (data) {
+        dispatch({
+          type: 'LOAD_SHARED_PORTFOLIO',
+          root: data.root,
+          tolerance: data.tolerance,
+          cash: data.cash,
+          shareMode: mode,
+        });
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const isReadOnly = state.isSharedView && state.sharedViewMode === 'view';
 
   const highlightedPath = useMemo(
     () => focusedNodeId ? getPathToNode(computedRoot, focusedNodeId) : new Set<string>(),
@@ -84,32 +110,29 @@ function App() {
       mode: state.displayMode === 'relative' ? 'absolute' : 'relative',
     });
   }
-
-  function handleSetTolerance(t: number) {
-    dispatch({ type: 'SET_TOLERANCE', tolerance: t });
-  }
-  function handleSetCash(v: number) {
-    dispatch({ type: 'SET_CASH', value: v });
-  }
+  function handleSetTolerance(t: number) { dispatch({ type: 'SET_TOLERANCE', tolerance: t }); }
+  function handleSetCash(v: number) { dispatch({ type: 'SET_CASH', value: v }); }
 
   if (!state.isInitialized) {
     return <WelcomePage dispatch={dispatch} />;
   }
 
   return (
-    <>
+    <ReadOnlyContext.Provider value={isReadOnly}>
       <main>
-        <SettingsDrawer
-          displayMode={state.displayMode}
-          onToggleMode={handleToggleMode}
-          tolerance={state.tolerance}
-          onSetTolerance={handleSetTolerance}
-          cash={state.cash}
-          onSetCash={handleSetCash}
-          computedRoot={computedRoot}
-          portfolioRoot={state.root}
-          dispatch={dispatch}
-        />
+        {!isReadOnly && (
+          <SettingsDrawer
+            displayMode={state.displayMode}
+            onToggleMode={handleToggleMode}
+            tolerance={state.tolerance}
+            onSetTolerance={handleSetTolerance}
+            cash={state.cash}
+            onSetCash={handleSetCash}
+            computedRoot={computedRoot}
+            portfolioRoot={state.root}
+            dispatch={dispatch}
+          />
+        )}
         <TreeView
           root={computedRoot}
           displayMode={state.displayMode}
@@ -149,9 +172,32 @@ function App() {
             onNavigate={setFocusedNodeId}
           />
         )}
+        {!state.isSharedView && (
+          <button className="share-btn" onClick={() => setShareModalOpen(true)} aria-label="Share portfolio">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <circle cx="15" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+              <circle cx="15" cy="16" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+              <circle cx="5"  cy="10" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+              <line x1="7.2" y1="8.8"  x2="12.8" y2="5.2"  stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="7.2" y1="11.2" x2="12.8" y2="14.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+            Share
+          </button>
+        )}
+        {state.isSharedView && (
+          <span className="shared-badge">
+            {state.sharedViewMode === 'view' ? 'View only' : 'Shared — editable'}
+          </span>
+        )}
         <span className="portfolio-label">Portfolio Visualizer</span>
+        {shareModalOpen && (
+          <ShareModal
+            portfolioId={state.root.id}
+            onClose={() => setShareModalOpen(false)}
+          />
+        )}
       </main>
-    </>
+    </ReadOnlyContext.Provider>
   );
 }
 

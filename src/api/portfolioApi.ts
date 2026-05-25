@@ -6,6 +6,7 @@ export interface PortfolioPayload {
   root: PortfolioNode;
   tolerance?: number;
   cash?: number;
+  shareMode?: 'edit' | 'view' | null;
 }
 
 export async function loadPortfolioFromCloud(id: string): Promise<PortfolioPayload | null> {
@@ -19,7 +20,7 @@ export async function loadPortfolioFromCloud(id: string): Promise<PortfolioPaylo
   }
 }
 
-export async function savePortfolioToCloud(id: string, data: PortfolioPayload): Promise<void> {
+export async function savePortfolioToCloud(id: string, data: Omit<PortfolioPayload, 'shareMode'>): Promise<void> {
   if (!API_URL) return;
   try {
     await fetch(`${API_URL}/api/portfolio/${id}`, {
@@ -30,6 +31,15 @@ export async function savePortfolioToCloud(id: string, data: PortfolioPayload): 
   } catch {
     // fire-and-forget — localStorage is the source of truth
   }
+}
+
+export async function setShareMode(id: string, mode: 'edit' | 'view'): Promise<void> {
+  if (!API_URL) return;
+  await fetch(`${API_URL}/api/portfolio/${id}/share`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ shareMode: mode }),
+  });
 }
 
 export async function deletePortfolioFromCloud(id: string): Promise<void> {

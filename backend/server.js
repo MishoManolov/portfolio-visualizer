@@ -21,8 +21,8 @@ app.get('/api/portfolio/:id', async (req, res) => {
   try {
     const doc = await portfolios.findOne({ _id: req.params.id });
     if (!doc) return res.status(404).json({ error: 'Not found' });
-    const { root, tolerance, cash } = doc;
-    res.json({ root, tolerance, cash });
+    const { root, tolerance, cash, shareMode } = doc;
+    res.json({ root, tolerance, cash, shareMode: shareMode ?? null });
   } catch {
     res.status(500).json({ error: 'Server error' });
   }
@@ -38,6 +38,22 @@ app.put('/api/portfolio/:id', async (req, res) => {
       { _id: req.params.id, root, tolerance, cash, updatedAt: new Date() },
       { upsert: true }
     );
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PATCH /api/portfolio/:id/share  — set or update share mode
+app.patch('/api/portfolio/:id/share', async (req, res) => {
+  try {
+    const { shareMode } = req.body;
+    if (!['edit', 'view'].includes(shareMode)) return res.status(400).json({ error: 'Invalid mode' });
+    const result = await portfolios.updateOne(
+      { _id: req.params.id },
+      { $set: { shareMode, updatedAt: new Date() } }
+    );
+    if (result.matchedCount === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ ok: true });
   } catch {
     res.status(500).json({ error: 'Server error' });

@@ -2,6 +2,7 @@ import { useRef, useState, useLayoutEffect } from 'react';
 import type { ComputedNode, DisplayMode, PortfolioAction } from '../../types';
 import { NodeCard } from '../NodeCard/NodeCard';
 import { AddNodeForm } from '../AddNodeForm/AddNodeForm';
+import { useReadOnly } from '../../context/ReadOnlyContext';
 import './TreeNode.css';
 
 interface TreeNodeProps {
@@ -44,7 +45,8 @@ export function TreeNode({
   visibleBranchIds,
   zoom,
 }: TreeNodeProps) {
-  const isAddFormOpen = activeAddFormNodeId === node.id;
+  const isReadOnly = useReadOnly();
+  const isAddFormOpen = !isReadOnly && activeAddFormNodeId === node.id;
   const hasExpandedChildren = node.children.length > 0 && node.isExpanded;
   const isFocused = node.id === focusedNodeId;
   const isOnPath = highlightedPath.has(node.id);

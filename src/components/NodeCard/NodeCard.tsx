@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { ComputedNode, DisplayMode } from '../../types';
 import { PercentageBar } from '../PercentageBar/PercentageBar';
 import { formatPercent, formatValue } from '../../utils/calculations';
+import { useReadOnly } from '../../context/ReadOnlyContext';
 import './NodeCard.css';
 
 interface NodeCardProps {
@@ -25,6 +26,7 @@ export function NodeCard({
   onUpdateValue,
   onCardBodyClick,
 }: NodeCardProps) {
+  const isReadOnly = useReadOnly();
   const hasChildren = node.children.length > 0;
   const isLeaf = !hasChildren;
   const isInvalid = !node.isValid && hasChildren;
@@ -147,7 +149,7 @@ export function NodeCard({
         </div>
 
         {/* ── Deposit / Withdraw action buttons ──────────────────── */}
-        {isLeaf && onUpdateValue && (
+        {isLeaf && onUpdateValue && !isReadOnly && (
           <div className="node-card__actions" onClick={stopProp}>
             <button
               className={`node-card__action-btn node-card__action-btn--deposit${txMode === 'deposit' ? ' node-card__action-btn--active-deposit' : ''}`}
