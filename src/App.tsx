@@ -60,12 +60,11 @@ function App() {
   const [zoom, setZoom] = useState(1);
   const [shareModalOpen, setShareModalOpen] = useState(false);
 
-  // Detect shared portfolio link on mount
+  // Detect shared snapshot link on mount (?share=<id>)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const shareId = params.get('share');
-    const mode = params.get('mode');
-    if (!shareId || (mode !== 'edit' && mode !== 'view')) return;
+    if (!shareId) return;
     loadPortfolioFromCloud(shareId).then(data => {
       if (data) {
         dispatch({
@@ -73,7 +72,7 @@ function App() {
           root: data.root,
           tolerance: data.tolerance,
           cash: data.cash,
-          shareMode: mode,
+          shareMode: 'view',
         });
       }
     });
@@ -173,7 +172,7 @@ function App() {
           />
         )}
         {!state.isSharedView && (
-          <button className="share-btn" onClick={() => setShareModalOpen(true)} aria-label="Share portfolio">
+          <button className="share-btn" onClick={() => setShareModalOpen(true)} aria-label="Save and share portfolio">
             <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <circle cx="15" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.6" />
               <circle cx="15" cy="16" r="2.5" stroke="currentColor" strokeWidth="1.6" />
@@ -181,7 +180,7 @@ function App() {
               <line x1="7.2" y1="8.8"  x2="12.8" y2="5.2"  stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
               <line x1="7.2" y1="11.2" x2="12.8" y2="14.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             </svg>
-            Share
+            Save &amp; Share
           </button>
         )}
         {state.isSharedView && (
@@ -192,7 +191,9 @@ function App() {
         <span className="portfolio-label">Portfolio Visualizer</span>
         {shareModalOpen && (
           <ShareModal
-            portfolioId={state.root.id}
+            root={state.root}
+            tolerance={state.tolerance}
+            cash={state.cash}
             onClose={() => setShareModalOpen(false)}
           />
         )}

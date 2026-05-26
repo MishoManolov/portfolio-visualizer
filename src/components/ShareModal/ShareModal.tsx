@@ -1,34 +1,59 @@
-import { useState } from 'react';
-import { setShareMode } from '../../api/portfolioApi';
+import { useState, useEffect } from 'react';
+import { createSnapshot } from '../../api/portfolioApi';
+import type { PortfolioNode } from '../../types';
 import './ShareModal.css';
 
 interface ShareModalProps {
-  portfolioId: string;
+  root: PortfolioNode;
+  tolerance: number;
+  cash: number;
   onClose: () => void;
 }
 
-export function ShareModal({ portfolioId, onClose }: ShareModalProps) {
-  const [copied, setCopied] = useState<'view' | 'edit' | null>(null);
-  const [loading, setLoading] = useState<'view' | 'edit' | null>(null);
+type Status = 'saving' | 'success' | 'error';
 
-  async function handleShare(mode: 'view' | 'edit') {
-    setLoading(mode);
-    try {
-      await setShareMode(portfolioId, mode);
-      const url = `${window.location.origin}/?share=${portfolioId}&mode=${mode}`;
-      await navigator.clipboard.writeText(url);
-      setCopied(mode);
-      setTimeout(() => setCopied(null), 2500);
-    } finally {
-      setLoading(null);
-    }
+export function ShareModal({ root, tolerance, cash, onClose }: ShareModalProps) {
+  const [status, setStatus] = useState<Status>('saving');
+  const [shareUrl, setShareUrl] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    createSnapshot({ root, tolerance, cash }).then(id => {
+      if (id) {
+        setShareUrl(`${window.location.origin}/?share=${id}`);
+        setStatus('success');
+      } else {
+        setStatus('error');
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function handleRetry() {
+    setStatus('saving');
+    setCopied(false);
+    createSnapshot({ root, tolerance, cash }).then(id => {
+      if (id) {
+        setShareUrl(`${window.location.origin}/?share=${id}`);
+        setStatus('success');
+      } else {
+        setStatus('error');
+      }
+    });
   }
 
   return (
     <div className="share-modal-backdrop" onClick={onClose}>
       <div className="share-modal" onClick={e => e.stopPropagation()}>
         <div className="share-modal__header">
-          <span className="share-modal__title">Share portfolio</span>
+          <span className="share-modal__title">Save &amp; Share</span>
           <button className="share-modal__close" onClick={onClose} aria-label="Close">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <line x1="4" y1="4" x2="12" y2="12" />
@@ -37,49 +62,51 @@ export function ShareModal({ portfolioId, onClose }: ShareModalProps) {
           </button>
         </div>
 
-        <p className="share-modal__desc">
-          Generate a link — anyone with it can open this portfolio.
-        </p>
+        {status === 'saving' && (
+          <div className="share-modal__body">
+            <div className="share-modal__spinner" aria-label="Saving…" />
+            <p className="share-modal__status-text">Saving snapshot…</p>
+          </div>
+        )}
 
-        <div className="share-modal__options">
-          <button
-            className="share-modal__option"
-            onClick={() => handleShare('view')}
-            disabled={loading !== null}
-          >
-            <div className="share-modal__option-icon">
-              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <path d="M10 4C5.5 4 2 10 2 10s3.5 6 8 6 8-6 8-6-3.5-6-8-6z" stroke="currentColor" strokeWidth="1.6" />
-                <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+        {status === 'success' && (
+          <div className="share-modal__body">
+            <div className="share-modal__success-icon">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" stroke="var(--color-success)" strokeWidth="1.8" />
+                <path d="M7 12l3.5 3.5L17 8" stroke="var(--color-success)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <div className="share-modal__option-text">
-              <span className="share-modal__option-label">
-                {copied === 'view' ? 'Link copied!' : 'View only'}
-              </span>
-              <span className="share-modal__option-hint">Recipient can explore but not edit</span>
+            <p className="share-modal__status-text">Snapshot saved! Anyone with this link can view it.</p>
+            <div className="share-modal__url-row">
+              <input
+                className="share-modal__url-input"
+                value={shareUrl}
+                readOnly
+                onFocus={e => e.target.select()}
+              />
+              <button className="share-modal__copy-btn" onClick={handleCopy}>
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
             </div>
-          </button>
+          </div>
+        )}
 
-          <button
-            className="share-modal__option"
-            onClick={() => handleShare('edit')}
-            disabled={loading !== null}
-          >
-            <div className="share-modal__option-icon">
-              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <path d="M14 2l4 4-9 9H5v-4l9-9z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-                <path d="M12 4l4 4" stroke="currentColor" strokeWidth="1.6" />
+        {status === 'error' && (
+          <div className="share-modal__body">
+            <div className="share-modal__error-icon">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" stroke="var(--color-danger)" strokeWidth="1.8" />
+                <line x1="12" y1="8" x2="12" y2="13" stroke="var(--color-danger)" strokeWidth="1.8" strokeLinecap="round" />
+                <circle cx="12" cy="16.5" r="1" fill="var(--color-danger)" />
               </svg>
             </div>
-            <div className="share-modal__option-text">
-              <span className="share-modal__option-label">
-                {copied === 'edit' ? 'Link copied!' : 'Editable'}
-              </span>
-              <span className="share-modal__option-hint">Recipient can view and make changes</span>
-            </div>
-          </button>
-        </div>
+            <p className="share-modal__status-text share-modal__status-text--error">
+              Failed to save. Check your connection and try again.
+            </p>
+            <button className="share-modal__retry-btn" onClick={handleRetry}>Try again</button>
+          </div>
+        )}
       </div>
     </div>
   );

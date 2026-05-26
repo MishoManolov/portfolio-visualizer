@@ -33,13 +33,20 @@ export async function savePortfolioToCloud(id: string, data: Omit<PortfolioPaylo
   }
 }
 
-export async function setShareMode(id: string, mode: 'edit' | 'view'): Promise<void> {
-  if (!API_URL) return;
-  await fetch(`${API_URL}/api/portfolio/${id}/share`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ shareMode: mode }),
-  });
+export async function createSnapshot(data: Omit<PortfolioPayload, 'shareMode'>): Promise<string | null> {
+  if (!API_URL) return null;
+  try {
+    const res = await fetch(`${API_URL}/api/snapshot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) return null;
+    const json = await res.json() as { id: string };
+    return json.id;
+  } catch {
+    return null;
+  }
 }
 
 export async function deletePortfolioFromCloud(id: string): Promise<void> {

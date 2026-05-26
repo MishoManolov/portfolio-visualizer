@@ -44,17 +44,21 @@ app.put('/api/portfolio/:id', async (req, res) => {
   }
 });
 
-// PATCH /api/portfolio/:id/share  — set or update share mode
-app.patch('/api/portfolio/:id/share', async (req, res) => {
+// POST /api/snapshot  — create an immutable snapshot, returns new id
+app.post('/api/snapshot', async (req, res) => {
   try {
-    const { shareMode } = req.body;
-    if (!['edit', 'view'].includes(shareMode)) return res.status(400).json({ error: 'Invalid mode' });
-    const result = await portfolios.updateOne(
-      { _id: req.params.id },
-      { $set: { shareMode, updatedAt: new Date() } }
-    );
-    if (result.matchedCount === 0) return res.status(404).json({ error: 'Not found' });
-    res.json({ ok: true });
+    const { root, tolerance, cash } = req.body;
+    if (!root) return res.status(400).json({ error: 'Missing root' });
+    const id = require('crypto').randomUUID();
+    await portfolios.insertOne({
+      _id: id,
+      root,
+      tolerance,
+      cash,
+      isSnapshot: true,
+      createdAt: new Date(),
+    });
+    res.json({ id });
   } catch {
     res.status(500).json({ error: 'Server error' });
   }
