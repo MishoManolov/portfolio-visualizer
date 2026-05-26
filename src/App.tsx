@@ -176,9 +176,6 @@ function App() {
           </svg>
           Save &amp; Share
         </button>
-        {state.isSharedView && (
-          <span className="shared-badge">Shared snapshot — save to fork</span>
-        )}
         <span className="portfolio-label">Portfolio Visualizer</span>
         {shareModalOpen && (
           <ShareModal

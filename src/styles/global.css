@@ -92,20 +92,6 @@ main {
   height: 18px;
 }
 
-.shared-badge {
-  position: fixed;
-  top: 20px;
-  right: 16px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 6px 12px;
-  z-index: 198;
-  pointer-events: none;
-}
 
 .portfolio-label {
   position: fixed;

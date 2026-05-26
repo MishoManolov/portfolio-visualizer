@@ -356,6 +356,7 @@ export function SettingsDrawer({
               onClick={() => {
                 if (window.confirm('Reset canvas? This will clear all data and return to the welcome screen.')) {
                   dispatch({ type: 'RESET_PORTFOLIO' });
+                  window.history.replaceState({}, '', '/');
                   setIsOpen(false);
                 }
               }}
