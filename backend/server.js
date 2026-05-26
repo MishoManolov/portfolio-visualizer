@@ -23,7 +23,8 @@ app.get('/api/portfolio/:id', async (req, res) => {
     if (!doc) return res.status(404).json({ error: 'Not found' });
     const { root, tolerance, cash, shareMode } = doc;
     res.json({ root, tolerance, cash, shareMode: shareMode ?? null });
-  } catch {
+  } catch (err) {
+    console.error('GET /api/portfolio/:id', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -39,7 +40,8 @@ app.put('/api/portfolio/:id', async (req, res) => {
       { upsert: true }
     );
     res.json({ ok: true });
-  } catch {
+  } catch (err) {
+    console.error('PUT /api/portfolio/:id', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -59,7 +61,8 @@ app.post('/api/snapshot', async (req, res) => {
       createdAt: new Date(),
     });
     res.json({ id });
-  } catch {
+  } catch (err) {
+    console.error('POST /api/snapshot', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -69,7 +72,8 @@ app.delete('/api/portfolio/:id', async (req, res) => {
   try {
     await portfolios.deleteOne({ _id: req.params.id });
     res.json({ ok: true });
-  } catch {
+  } catch (err) {
+    console.error('DELETE /api/portfolio/:id', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -80,3 +84,5 @@ const PORT = process.env.PORT || 3001;
 connect()
   .then(() => app.listen(PORT, () => console.log(`API listening on port ${PORT}`)))
   .catch(err => { console.error('Failed to connect to MongoDB:', err); process.exit(1); });
+
+process.on('unhandledRejection', err => console.error('Unhandled rejection:', err));
