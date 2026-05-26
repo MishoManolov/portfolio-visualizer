@@ -46,7 +46,6 @@ function getInitialState(): PortfolioState {
     cash: saved?.cash ?? 0,
     isInitialized: saved !== null,
     isSharedView: false,
-    sharedViewMode: null,
   };
 }
 
@@ -147,7 +146,6 @@ function reducer(state: PortfolioState, action: PortfolioAction): PortfolioState
         activeAddFormNodeId: null,
         isInitialized: true,
         isSharedView: true,
-        sharedViewMode: action.shareMode,
       };
     case 'RESET_PORTFOLIO':
       deletePortfolioFromCloud(state.root.id);
@@ -160,7 +158,6 @@ function reducer(state: PortfolioState, action: PortfolioAction): PortfolioState
         cash: 0,
         isInitialized: false,
         isSharedView: false,
-        sharedViewMode: null,
       };
     default:
       return state;
@@ -182,11 +179,9 @@ export function usePortfolio() {
       // Normal portfolio: persist locally and to cloud
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(payload)); } catch { /* ignore */ }
       savePortfolioToCloud(state.root.id, payload);
-    } else if (state.sharedViewMode === 'edit') {
-      // Shared editable view: sync changes to cloud only, leave visitor's localStorage untouched
-      savePortfolioToCloud(state.root.id, payload);
     }
-  }, [state.root, state.tolerance, state.cash, state.isInitialized, state.isSharedView, state.sharedViewMode]);
+    // Shared snapshots: never auto-save — user must click "Save & Share" to fork
+  }, [state.root, state.tolerance, state.cash, state.isInitialized, state.isSharedView]);
 
   return { state, dispatch, computedRoot };
 }

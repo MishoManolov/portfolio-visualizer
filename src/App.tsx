@@ -72,14 +72,11 @@ function App() {
           root: data.root,
           tolerance: data.tolerance,
           cash: data.cash,
-          shareMode: 'view',
         });
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const isReadOnly = state.isSharedView && state.sharedViewMode === 'view';
 
   const highlightedPath = useMemo(
     () => focusedNodeId ? getPathToNode(computedRoot, focusedNodeId) : new Set<string>(),
@@ -117,10 +114,9 @@ function App() {
   }
 
   return (
-    <ReadOnlyContext.Provider value={isReadOnly}>
+    <ReadOnlyContext.Provider value={false}>
       <main>
-        {!isReadOnly && (
-          <SettingsDrawer
+        <SettingsDrawer
             displayMode={state.displayMode}
             onToggleMode={handleToggleMode}
             tolerance={state.tolerance}
@@ -131,7 +127,6 @@ function App() {
             portfolioRoot={state.root}
             dispatch={dispatch}
           />
-        )}
         <TreeView
           root={computedRoot}
           displayMode={state.displayMode}
@@ -171,22 +166,18 @@ function App() {
             onNavigate={setFocusedNodeId}
           />
         )}
-        {!state.isSharedView && (
-          <button className="share-btn" onClick={() => setShareModalOpen(true)} aria-label="Save and share portfolio">
-            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <circle cx="15" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.6" />
-              <circle cx="15" cy="16" r="2.5" stroke="currentColor" strokeWidth="1.6" />
-              <circle cx="5"  cy="10" r="2.5" stroke="currentColor" strokeWidth="1.6" />
-              <line x1="7.2" y1="8.8"  x2="12.8" y2="5.2"  stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="7.2" y1="11.2" x2="12.8" y2="14.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
-            Save &amp; Share
-          </button>
-        )}
+        <button className="share-btn" onClick={() => setShareModalOpen(true)} aria-label="Save and share portfolio">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <circle cx="15" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+            <circle cx="15" cy="16" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+            <circle cx="5"  cy="10" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+            <line x1="7.2" y1="8.8"  x2="12.8" y2="5.2"  stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            <line x1="7.2" y1="11.2" x2="12.8" y2="14.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+          Save &amp; Share
+        </button>
         {state.isSharedView && (
-          <span className="shared-badge">
-            {state.sharedViewMode === 'view' ? 'View only' : 'Shared — editable'}
-          </span>
+          <span className="shared-badge">Shared snapshot — save to fork</span>
         )}
         <span className="portfolio-label">Portfolio Visualizer</span>
         {shareModalOpen && (

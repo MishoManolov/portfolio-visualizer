@@ -58,7 +58,6 @@ export interface PortfolioState {
   cash: number;
   isInitialized: boolean;
   isSharedView: boolean;
-  sharedViewMode: 'edit' | 'view' | null;
 }
 
 export type PortfolioAction =
@@ -73,4 +72,4 @@ export type PortfolioAction =
   | { type: 'IMPORT_PORTFOLIO'; root: PortfolioNode; tolerance?: number; cash?: number }
   | { type: 'CREATE_PORTFOLIO'; name: string }
   | { type: 'RESET_PORTFOLIO' }
-  | { type: 'LOAD_SHARED_PORTFOLIO'; root: PortfolioNode; tolerance?: number; cash?: number; shareMode: 'edit' | 'view' };
+  | { type: 'LOAD_SHARED_PORTFOLIO'; root: PortfolioNode; tolerance?: number; cash?: number };
