@@ -51,6 +51,21 @@
   border-color: var(--color-primary) !important;
 }
 
+.node-card.node-card--inactive {
+  opacity: 0.5;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+}
+
+.node-card.node-card--inactive:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: var(--shadow-lg);
+}
+
+.node-card.node-card--inactive .node-card__percent {
+  color: var(--color-text-muted);
+}
+
 .node-card__main {
   display: flex;
   align-items: flex-start;

@@ -3,6 +3,7 @@ import type { ComputedNode, PortfolioAction, DisplayMode } from '../../types';
 import { AddNodeForm } from '../AddNodeForm/AddNodeForm';
 import { formatPercent, formatValue } from '../../utils/calculations';
 import { useReadOnly } from '../../context/ReadOnlyContext';
+import { useHideValues } from '../../context/HideValuesContext';
 import './SidePanel.css';
 
 function normalizeDecimal(s: string): string {
@@ -66,6 +67,7 @@ function MetricRow({ label, value, unit, partial }: {
 
 export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, onNavigate }: SidePanelProps) {
   const isReadOnly = useReadOnly();
+  const hideValues = useHideValues();
   const [localName, setLocalName] = useState(node.name);
   const [localDescription, setLocalDescription] = useState(node.description ?? '');
   const [localPercent, setLocalPercent] = useState(String(node.relativePercent));
@@ -116,8 +118,8 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
 
   function handlePercentBlur() {
     const val = parseFloat(normalizeDecimal(localPercent));
-    if (isNaN(val) || val <= 0 || val > 100) {
-      setPercentError('Must be between 0.01 and 100');
+    if (isNaN(val) || val < 0 || val > 100) {
+      setPercentError('Must be between 0 and 100');
       setLocalPercent(String(node.relativePercent));
       return;
     }
@@ -194,6 +196,9 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
           aria-label="Node name"
           readOnly={isReadOnly}
         />
+        {node.relativePercent === 0 && (
+          <span className="side-panel__inactive-badge">Inactive</span>
+        )}
         <button className="side-panel__close" onClick={onClose} aria-label="Close panel">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <line x1="4" y1="4" x2="12" y2="12" />
@@ -269,7 +274,7 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
             <div className="side-panel__field">
               <span className="side-panel__field-label">Value</span>
               <span className={`side-panel__field-value${!node.valueIsTracked ? ' side-panel__field-value--secondary' : ''}`}>
-                {!node.valueIsTracked ? '—' : formatValue(node.aggregatedValue)}
+                {!node.valueIsTracked ? '—' : (hideValues ? '*****' : formatValue(node.aggregatedValue))}
                 {node.valueIsTracked && node.isValuePartial && (
                   <span className="side-panel__partial-mark" title="Some leaf nodes have no value set (counted as 0)">*</span>
                 )}
@@ -282,12 +287,12 @@ export function SidePanel({ node, parentNode, displayMode, dispatch, onClose, on
                 type="text"
                 inputMode="decimal"
                 className="side-panel__metric-input"
-                value={localValue}
+                value={hideValues ? '*****' : localValue}
                 placeholder="—"
-                onChange={e => setLocalValue(e.target.value)}
-                onBlur={handleValueBlur}
-                onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                readOnly={isReadOnly}
+                onChange={e => !hideValues && setLocalValue(e.target.value)}
+                onBlur={hideValues ? undefined : handleValueBlur}
+                onKeyDown={e => { if (!hideValues && e.key === 'Enter') e.currentTarget.blur(); }}
+                readOnly={isReadOnly || hideValues}
               />
             </div>
           )}

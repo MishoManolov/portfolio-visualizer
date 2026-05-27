@@ -3,6 +3,7 @@ import type { ComputedNode, DisplayMode } from '../../types';
 import { PercentageBar } from '../PercentageBar/PercentageBar';
 import { formatPercent, formatValue } from '../../utils/calculations';
 import { useReadOnly } from '../../context/ReadOnlyContext';
+import { useHideValues } from '../../context/HideValuesContext';
 import './NodeCard.css';
 
 interface NodeCardProps {
@@ -27,6 +28,7 @@ export function NodeCard({
   onCardBodyClick,
 }: NodeCardProps) {
   const isReadOnly = useReadOnly();
+  const hideValues = useHideValues();
   const hasChildren = node.children.length > 0;
   const isLeaf = !hasChildren;
   const isInvalid = !node.isValid && hasChildren;
@@ -87,6 +89,7 @@ export function NodeCard({
         isRoot ? 'node-card--root' : '',
         isOverlapFocused ? 'node-card--overlap-focused' : '',
         onCardBodyClick ? 'node-card--clickable' : '',
+        node.relativePercent === 0 ? 'node-card--inactive' : '',
       ].filter(Boolean).join(' ')}
       onClick={onCardBodyClick ? handleCardClick : undefined}
     >
@@ -130,7 +133,7 @@ export function NodeCard({
           )}
           {node.valueIsTracked && (
             <div className="node-card__value-row">
-              value: {formatValue(node.aggregatedValue)}
+              value: {hideValues ? '*****' : formatValue(node.aggregatedValue)}
               {node.isValuePartial && <span className="node-card__value-partial">*</span>}
             </div>
           )}

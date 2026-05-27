@@ -12,11 +12,14 @@ interface HeaderProps {
   computedRoot: ComputedNode;
   portfolioRoot: PortfolioNode;
   dispatch: React.Dispatch<PortfolioAction>;
+  hideValues: boolean;
+  onToggleHideValues: () => void;
 }
 
 export function Header({
   displayMode, onToggleMode, tolerance, onSetTolerance,
   cash, onSetCash, computedRoot, portfolioRoot, dispatch,
+  hideValues, onToggleHideValues,
 }: HeaderProps) {
   return (
     <header className="header">
@@ -31,6 +34,8 @@ export function Header({
           computedRoot={computedRoot}
           portfolioRoot={portfolioRoot}
           dispatch={dispatch}
+          hideValues={hideValues}
+          onToggleHideValues={onToggleHideValues}
         />
         <div className="header__title-group">
           <h1 className="header__title">Portfolio Visualizer</h1>

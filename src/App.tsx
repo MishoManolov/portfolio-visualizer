@@ -6,6 +6,7 @@ import { SidePanel } from './components/SidePanel/SidePanel';
 import { WelcomePage } from './components/WelcomePage/WelcomePage';
 import { ShareModal } from './components/ShareModal/ShareModal';
 import { ReadOnlyContext } from './context/ReadOnlyContext';
+import { HideValuesContext } from './context/HideValuesContext';
 import { loadPortfolioFromCloud } from './api/portfolioApi';
 import type { ComputedNode } from './types';
 
@@ -59,6 +60,7 @@ function App() {
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [hideValues, setHideValues] = useState(false);
 
   // Detect shared snapshot link on mount (?share=<id>)
   useEffect(() => {
@@ -115,6 +117,7 @@ function App() {
 
   return (
     <ReadOnlyContext.Provider value={false}>
+    <HideValuesContext.Provider value={hideValues}>
       <main>
         <SettingsDrawer
             displayMode={state.displayMode}
@@ -126,6 +129,8 @@ function App() {
             computedRoot={computedRoot}
             portfolioRoot={state.root}
             dispatch={dispatch}
+            hideValues={hideValues}
+            onToggleHideValues={() => setHideValues(h => !h)}
           />
         <TreeView
           root={computedRoot}
@@ -186,6 +191,7 @@ function App() {
           />
         )}
       </main>
+    </HideValuesContext.Provider>
     </ReadOnlyContext.Provider>
   );
 }

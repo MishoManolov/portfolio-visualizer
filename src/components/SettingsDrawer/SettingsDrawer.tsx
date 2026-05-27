@@ -2,7 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import type { DisplayMode, ComputedNode, PortfolioAction, PortfolioNode, NodeMetrics } from '../../types';
 import { computeRebalancePlan, type RebalancePlan, type RebalanceOperation } from '../../utils/rebalance';
 import { formatValue, formatPercent } from '../../utils/calculations';
+import { useHideValues } from '../../context/HideValuesContext';
 import './SettingsDrawer.css';
+
+const HIDDEN = '*****';
 
 interface PortfolioFile {
   version: number;
@@ -21,6 +24,8 @@ interface SettingsDrawerProps {
   computedRoot: ComputedNode;
   portfolioRoot: PortfolioNode;
   dispatch: React.Dispatch<PortfolioAction>;
+  hideValues: boolean;
+  onToggleHideValues: () => void;
 }
 
 function findNode(node: ComputedNode, id: string): ComputedNode | null {
@@ -60,6 +65,7 @@ function normalizeNode(obj: Record<string, unknown>): PortfolioNode {
 export function SettingsDrawer({
   displayMode, onToggleMode, tolerance, onSetTolerance,
   cash, onSetCash, computedRoot, portfolioRoot, dispatch,
+  hideValues, onToggleHideValues,
 }: SettingsDrawerProps) {
   const investedCapital = computedRoot.aggregatedValue;
   const [isOpen, setIsOpen] = useState(false);
@@ -227,24 +233,25 @@ export function SettingsDrawer({
               <div className="settings-capital-row settings-capital-row--readonly">
                 <span className="settings-capital-row__label">Invested</span>
                 <span className="settings-capital-row__value">
-                  {investedCapital > 0 ? investedCapital.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—'}
+                  {hideValues ? HIDDEN : (investedCapital > 0 ? investedCapital.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—')}
                 </span>
               </div>
               <label className="settings-capital-row">
                 <span className="settings-capital-row__label">
                   Cash
-                  {cash < 0 && <span className="settings-capital-row__hint"> (reducing)</span>}
-                  {cash > 0 && <span className="settings-capital-row__hint"> (growing)</span>}
+                  {!hideValues && cash < 0 && <span className="settings-capital-row__hint"> (reducing)</span>}
+                  {!hideValues && cash > 0 && <span className="settings-capital-row__hint"> (growing)</span>}
                 </span>
                 <input
                   type="text"
                   inputMode="decimal"
                   className="settings-capital-row__input"
                   placeholder="0"
-                  value={localCash}
-                  onChange={e => setLocalCash(e.target.value)}
-                  onBlur={handleCashBlur}
-                  onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                  value={hideValues ? HIDDEN : localCash}
+                  onChange={e => !hideValues && setLocalCash(e.target.value)}
+                  onBlur={hideValues ? undefined : handleCashBlur}
+                  onKeyDown={e => { if (!hideValues && e.key === 'Enter') e.currentTarget.blur(); }}
+                  readOnly={hideValues}
                   aria-label="Cash balance (positive = growing, negative = reducing)"
                 />
               </label>
@@ -346,6 +353,35 @@ export function SettingsDrawer({
               style={{ display: 'none' }}
               onChange={handleFileChange}
             />
+          </section>
+
+          {/* ── Privacy ──────────────────────────────────────────── */}
+          <section className="settings-section">
+            <div className="settings-section__label">Privacy</div>
+            <div className="settings-toggle" role="group">
+              <button
+                className={`settings-toggle__btn${!hideValues ? ' settings-toggle__btn--active' : ''}`}
+                onClick={() => hideValues && onToggleHideValues()}
+                aria-pressed={!hideValues}
+              >
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" width="14" height="14" style={{ marginRight: 5 }}>
+                  <ellipse cx="10" cy="10" rx="8" ry="5" stroke="currentColor" strokeWidth="1.6" />
+                  <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+                Show
+              </button>
+              <button
+                className={`settings-toggle__btn${hideValues ? ' settings-toggle__btn--active' : ''}`}
+                onClick={() => !hideValues && onToggleHideValues()}
+                aria-pressed={hideValues}
+              >
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" width="14" height="14" style={{ marginRight: 5 }}>
+                  <ellipse cx="10" cy="10" rx="8" ry="5" stroke="currentColor" strokeWidth="1.6" />
+                  <line x1="3" y1="3" x2="17" y2="17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+                Hide
+              </button>
+            </div>
           </section>
 
           {/* ── Reset ─────────────────────────────────────────────── */}
@@ -483,6 +519,7 @@ function OperationRow({ op, currentCash, onFulfill }: {
   currentCash: number;
   onFulfill: (op: RebalanceOperation) => void;
 }) {
+  const hideValues = useHideValues();
   const isDeposit = op.type === 'deposit';
   const canFulfill = !isDeposit || currentCash >= op.amount;
 
@@ -494,7 +531,7 @@ function OperationRow({ op, currentCash, onFulfill }: {
       <div className="rebalance-op__body">
         <span className="rebalance-op__name">{op.assetName}</span>
         <span className="rebalance-op__amount">
-          {formatValue(op.amount)}{' '}
+          {hideValues ? HIDDEN : formatValue(op.amount)}{' '}
           <span className="rebalance-op__pct">({formatPercent(op.portfolioPercent)})</span>
         </span>
       </div>
@@ -502,7 +539,7 @@ function OperationRow({ op, currentCash, onFulfill }: {
         className={`rebalance-op__fulfill${canFulfill ? '' : ' rebalance-op__fulfill--disabled'}`}
         onClick={() => canFulfill && onFulfill(op)}
         disabled={!canFulfill}
-        title={canFulfill ? `Fulfill ${op.type}` : `Insufficient cash (need ${formatValue(op.amount)}, have ${formatValue(currentCash)})`}
+        title={canFulfill ? `Fulfill ${op.type}` : `Insufficient cash (need ${hideValues ? HIDDEN : formatValue(op.amount)}, have ${hideValues ? HIDDEN : formatValue(currentCash)})`}
       >
         {canFulfill ? '▶' : '⊘'}
       </button>

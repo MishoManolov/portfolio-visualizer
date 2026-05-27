@@ -48,6 +48,20 @@
   border-bottom-color: var(--color-primary);
 }
 
+.side-panel__inactive-badge {
+  flex-shrink: 0;
+  align-self: center;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
 .side-panel__close {
   flex-shrink: 0;
   width: 28px;
