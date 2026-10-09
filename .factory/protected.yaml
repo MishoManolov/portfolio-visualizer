@@ -1,0 +1,6 @@
+protected_paths:
+  - ".factory/**"
+  - "package.json"
+  - "bun.lock"
+  - "backend/**"
+  - ".env*"
