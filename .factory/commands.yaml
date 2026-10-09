@@ -1,0 +1,5 @@
+# The production build is the only check that passes today: `bun run lint` fails with 6 existing
+# errors, and there is no test suite yet. Add lint to gates once it is clean.
+image: factory-agent:py3.12-bun
+build: sh -c 'bun install --frozen-lockfile && bun run build'
+gates: [build]
